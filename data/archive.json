@@ -911,44 +911,21 @@
       "year": 2026,
       "week_num": 27,
       "start_date": "2026-06-29",
-      "end_date": "2026-06-30",
+      "end_date": "2026-07-05",
       "label": "2026년 27주차",
-      "summary": "2026-06-29 ~ 2026-06-30 식품 법령 2건. 시행 0건 / 예고 2건.",
+      "summary": "2026-06-29 ~ 2026-07-05 기간 식품 법령 개정 0건 수집. 법제처 0건 · 식약처 0건 · 식품안전나라 0건.",
+      "items": [],
+      "collected_at": "2026-06-30T10:09:28.868101",
       "counts": {
-        "total": 2,
+        "total": 0,
         "법제처": 0,
-        "식약처": 2,
+        "식약처": 0,
         "식품안전나라": 0,
         "시행": 0,
-        "예고": 2
-      },
-      "items": [
-        {
-          "title": "식품의 기준 및 규격 일부개정고시(안) 행정예고(식품의약품안전처 공고 제2026-311호)",
-          "source": "식약처",
-          "status": "예고",
-          "date": "2026-06-30",
-          "url": "https://www.mfds.go.kr/brd/m_209/list.do",
-          "key_points": [],
-          "industry_impact": "",
-          "law_type": "행정예고",
-          "is_new": true
-        },
-        {
-          "title": "식품의 기준 및 규격 일부개정고시(안) 행정예고(식품의약품안전처 공고 제2026-310호)",
-          "source": "식약처",
-          "status": "예고",
-          "date": "2026-06-30",
-          "url": "https://www.mfds.go.kr/brd/m_209/list.do",
-          "key_points": [],
-          "industry_impact": "",
-          "law_type": "행정예고",
-          "is_new": true
-        }
-      ],
-      "collected_at": "2026-06-30T18:23:00.697615"
+        "예고": 0
+      }
     }
   ],
   "total_weeks": 26,
-  "last_updated": "2026-06-30T18:23:00.697615"
+  "last_updated": "2026-06-30T10:09:28.868602"
 }
