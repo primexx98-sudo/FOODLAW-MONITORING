@@ -2,13 +2,11 @@
   "weeks": [
     {
       "year": 2026,
-      "week_num": 27,
-      "start_date": "2026-06-29",
-      "end_date": "2026-07-05",
-      "label": "2026년 27주차",
-      "summary": "2026-06-29 ~ 2026-07-05 기간 식품 법령 개정 0건 수집. 법제처 0건 · 식약처 0건 · 식품안전나라 0건.",
-      "items": [],
-      "collected_at": "2026-06-30T07:20:52.074876",
+      "week_num": 2,
+      "start_date": "2026-01-05",
+      "end_date": "2026-01-11",
+      "label": "2026년 2주차",
+      "summary": "2026-01-05 ~ 2026-01-11 수집 항목 없음.",
       "counts": {
         "total": 0,
         "법제처": 0,
@@ -16,9 +14,941 @@
         "식품안전나라": 0,
         "시행": 0,
         "예고": 0
-      }
+      },
+      "items": [],
+      "collected_at": "2026-06-30T18:23:00.697615"
+    },
+    {
+      "year": 2026,
+      "week_num": 3,
+      "start_date": "2026-01-12",
+      "end_date": "2026-01-18",
+      "label": "2026년 3주차",
+      "summary": "2026-01-12 ~ 2026-01-18 식품 법령 2건. 시행 0건 / 예고 2건.",
+      "counts": {
+        "total": 2,
+        "법제처": 0,
+        "식약처": 2,
+        "식품안전나라": 0,
+        "시행": 0,
+        "예고": 2
+      },
+      "items": [
+        {
+          "title": "「식품 및 축산물 안전관리인증기준」 일부개정고시(안) 행정예고(공고 제2026-021호, 2026.1.15.)",
+          "source": "식약처",
+          "status": "예고",
+          "date": "2026-01-15",
+          "url": "https://www.mfds.go.kr/brd/m_209/list.do",
+          "key_points": [],
+          "industry_impact": "",
+          "law_type": "행정예고",
+          "is_new": false
+        },
+        {
+          "title": "「수입식품 신고포상금 지급에 관한 규정」 일부개정고시(안) 행정예고(식품의약품안전처 공고 제2026-015호)",
+          "source": "식약처",
+          "status": "예고",
+          "date": "2026-01-13",
+          "url": "https://www.mfds.go.kr/brd/m_209/list.do",
+          "key_points": [],
+          "industry_impact": "",
+          "law_type": "행정예고",
+          "is_new": false
+        }
+      ],
+      "collected_at": "2026-06-30T18:23:00.697615"
+    },
+    {
+      "year": 2026,
+      "week_num": 4,
+      "start_date": "2026-01-19",
+      "end_date": "2026-01-25",
+      "label": "2026년 4주차",
+      "summary": "2026-01-19 ~ 2026-01-25 수집 항목 없음.",
+      "counts": {
+        "total": 0,
+        "법제처": 0,
+        "식약처": 0,
+        "식품안전나라": 0,
+        "시행": 0,
+        "예고": 0
+      },
+      "items": [],
+      "collected_at": "2026-06-30T18:23:00.697615"
+    },
+    {
+      "year": 2026,
+      "week_num": 5,
+      "start_date": "2026-01-26",
+      "end_date": "2026-02-01",
+      "label": "2026년 5주차",
+      "summary": "2026-01-26 ~ 2026-02-01 식품 법령 1건. 시행 0건 / 예고 1건.",
+      "counts": {
+        "total": 1,
+        "법제처": 0,
+        "식약처": 1,
+        "식품안전나라": 0,
+        "시행": 0,
+        "예고": 1
+      },
+      "items": [
+        {
+          "title": "「북한산 식품등의 반입 절차 등에 관한 고시」 제정(안) 행정예고(공고 제2026-050호, 2026.1.30.)",
+          "source": "식약처",
+          "status": "예고",
+          "date": "2026-01-30",
+          "url": "https://www.mfds.go.kr/brd/m_209/list.do",
+          "key_points": [],
+          "industry_impact": "",
+          "law_type": "행정예고",
+          "is_new": false
+        }
+      ],
+      "collected_at": "2026-06-30T18:23:00.697615"
+    },
+    {
+      "year": 2026,
+      "week_num": 6,
+      "start_date": "2026-02-02",
+      "end_date": "2026-02-08",
+      "label": "2026년 6주차",
+      "summary": "2026-02-02 ~ 2026-02-08 수집 항목 없음.",
+      "counts": {
+        "total": 0,
+        "법제처": 0,
+        "식약처": 0,
+        "식품안전나라": 0,
+        "시행": 0,
+        "예고": 0
+      },
+      "items": [],
+      "collected_at": "2026-06-30T18:23:00.697615"
+    },
+    {
+      "year": 2026,
+      "week_num": 7,
+      "start_date": "2026-02-09",
+      "end_date": "2026-02-15",
+      "label": "2026년 7주차",
+      "summary": "2026-02-09 ~ 2026-02-15 식품 법령 2건. 시행 2건 / 예고 0건.",
+      "counts": {
+        "total": 2,
+        "법제처": 0,
+        "식약처": 2,
+        "식품안전나라": 0,
+        "시행": 2,
+        "예고": 0
+      },
+      "items": [
+        {
+          "title": "식품첨가물의 기준 및 규격 일부개정고시(안)_식약처 공고 제2026-084호(2026.2.13.)",
+          "source": "식약처",
+          "status": "시행",
+          "date": "2026-02-13",
+          "url": "https://www.mfds.go.kr/brd/m_209/list.do",
+          "key_points": [],
+          "industry_impact": "",
+          "law_type": "행정예고",
+          "is_new": false
+        },
+        {
+          "title": "식품첨가물의 기준 및 규격 일부개정고시(안)_식약처 공고 제2026-083호(2026.2.13.)",
+          "source": "식약처",
+          "status": "시행",
+          "date": "2026-02-13",
+          "url": "https://www.mfds.go.kr/brd/m_209/list.do",
+          "key_points": [],
+          "industry_impact": "",
+          "law_type": "행정예고",
+          "is_new": false
+        }
+      ],
+      "collected_at": "2026-06-30T18:23:00.697615"
+    },
+    {
+      "year": 2026,
+      "week_num": 8,
+      "start_date": "2026-02-16",
+      "end_date": "2026-02-22",
+      "label": "2026년 8주차",
+      "summary": "2026-02-16 ~ 2026-02-22 수집 항목 없음.",
+      "counts": {
+        "total": 0,
+        "법제처": 0,
+        "식약처": 0,
+        "식품안전나라": 0,
+        "시행": 0,
+        "예고": 0
+      },
+      "items": [],
+      "collected_at": "2026-06-30T18:23:00.697615"
+    },
+    {
+      "year": 2026,
+      "week_num": 9,
+      "start_date": "2026-02-23",
+      "end_date": "2026-03-01",
+      "label": "2026년 9주차",
+      "summary": "2026-02-23 ~ 2026-03-01 식품 법령 2건. 시행 1건 / 예고 1건.",
+      "counts": {
+        "total": 2,
+        "법제처": 1,
+        "식약처": 1,
+        "식품안전나라": 0,
+        "시행": 1,
+        "예고": 1
+      },
+      "items": [
+        {
+          "title": "1.  식품위생법 시행규칙",
+          "source": "법제처",
+          "status": "시행",
+          "date": "2026-03-01",
+          "url": "https://www.law.go.kr/lsSc.do?query=식품위생법",
+          "key_points": [],
+          "industry_impact": "",
+          "law_type": "법령",
+          "is_new": false
+        },
+        {
+          "title": "「유전자변형식품등의 표시기준」 일부개정고시(안) 행정예고(식약처 공고 제2026-114호, 2026.2.27)",
+          "source": "식약처",
+          "status": "예고",
+          "date": "2026-02-27",
+          "url": "https://www.mfds.go.kr/brd/m_209/list.do",
+          "key_points": [],
+          "industry_impact": "",
+          "law_type": "행정예고",
+          "is_new": false
+        }
+      ],
+      "collected_at": "2026-06-30T18:23:00.697615"
+    },
+    {
+      "year": 2026,
+      "week_num": 10,
+      "start_date": "2026-03-02",
+      "end_date": "2026-03-08",
+      "label": "2026년 10주차",
+      "summary": "2026-03-02 ~ 2026-03-08 식품 법령 1건. 시행 1건 / 예고 0건.",
+      "counts": {
+        "total": 1,
+        "법제처": 0,
+        "식약처": 1,
+        "식품안전나라": 0,
+        "시행": 1,
+        "예고": 0
+      },
+      "items": [
+        {
+          "title": "「식품위생법 시행규칙」(식품의약품안전처 공고 제2026-109호)",
+          "source": "식약처",
+          "status": "시행",
+          "date": "2026-03-04",
+          "url": "https://www.mfds.go.kr/brd/m_209/list.do",
+          "key_points": [],
+          "industry_impact": "",
+          "law_type": "행정예고",
+          "is_new": false
+        }
+      ],
+      "collected_at": "2026-06-30T18:23:00.697615"
+    },
+    {
+      "year": 2026,
+      "week_num": 11,
+      "start_date": "2026-03-09",
+      "end_date": "2026-03-15",
+      "label": "2026년 11주차",
+      "summary": "2026-03-09 ~ 2026-03-15 식품 법령 1건. 시행 0건 / 예고 1건.",
+      "counts": {
+        "total": 1,
+        "법제처": 0,
+        "식약처": 1,
+        "식품안전나라": 0,
+        "시행": 0,
+        "예고": 1
+      },
+      "items": [
+        {
+          "title": "「식품 및 축산물 안전관리인증기준」 일부개정고시(안) 행정예고(공고 제2026-128호, 2026.3.9.)",
+          "source": "식약처",
+          "status": "예고",
+          "date": "2026-03-09",
+          "url": "https://www.mfds.go.kr/brd/m_209/list.do",
+          "key_points": [],
+          "industry_impact": "",
+          "law_type": "행정예고",
+          "is_new": false
+        }
+      ],
+      "collected_at": "2026-06-30T18:23:00.697615"
+    },
+    {
+      "year": 2026,
+      "week_num": 12,
+      "start_date": "2026-03-16",
+      "end_date": "2026-03-22",
+      "label": "2026년 12주차",
+      "summary": "2026-03-16 ~ 2026-03-22 식품 법령 5건. 시행 3건 / 예고 2건.",
+      "counts": {
+        "total": 5,
+        "법제처": 3,
+        "식약처": 2,
+        "식품안전나라": 0,
+        "시행": 3,
+        "예고": 2
+      },
+      "items": [
+        {
+          "title": "1.  식품안전기본법",
+          "source": "법제처",
+          "status": "시행",
+          "date": "2026-03-19",
+          "url": "https://www.law.go.kr/lsSc.do?query=식품안전기본법",
+          "key_points": [],
+          "industry_impact": "",
+          "law_type": "법령",
+          "is_new": false
+        },
+        {
+          "title": "2.  식품안전기본법 시행령",
+          "source": "법제처",
+          "status": "시행",
+          "date": "2026-03-19",
+          "url": "https://www.law.go.kr/lsSc.do?query=식품안전기본법",
+          "key_points": [],
+          "industry_impact": "",
+          "law_type": "법령",
+          "is_new": false
+        },
+        {
+          "title": "식품안전기본법",
+          "source": "법제처",
+          "status": "시행",
+          "date": "2026-03-19",
+          "url": "https://www.law.go.kr/lsSc.do?query=식품안전기본법",
+          "key_points": [],
+          "industry_impact": "",
+          "law_type": "법령",
+          "is_new": false
+        },
+        {
+          "title": "「축산물 위생관리법 시행규칙」 일부개정령(안) 입법예고(식품의약품안전처공고 제2026-136호)",
+          "source": "식약처",
+          "status": "예고",
+          "date": "2026-03-16",
+          "url": "https://www.mfds.go.kr/brd/m_209/list.do",
+          "key_points": [],
+          "industry_impact": "",
+          "law_type": "행정예고",
+          "is_new": false
+        },
+        {
+          "title": "「축산물 위생관리법 시행령」 일부개정령(안) 입법예고(식품의약품안전처공고 제2026-135호)",
+          "source": "식약처",
+          "status": "예고",
+          "date": "2026-03-16",
+          "url": "https://www.mfds.go.kr/brd/m_209/list.do",
+          "key_points": [],
+          "industry_impact": "",
+          "law_type": "행정예고",
+          "is_new": false
+        }
+      ],
+      "collected_at": "2026-06-30T18:23:00.697615"
+    },
+    {
+      "year": 2026,
+      "week_num": 13,
+      "start_date": "2026-03-23",
+      "end_date": "2026-03-29",
+      "label": "2026년 13주차",
+      "summary": "2026-03-23 ~ 2026-03-29 식품 법령 1건. 시행 1건 / 예고 0건.",
+      "counts": {
+        "total": 1,
+        "법제처": 0,
+        "식약처": 1,
+        "식품안전나라": 0,
+        "시행": 1,
+        "예고": 0
+      },
+      "items": [
+        {
+          "title": "식품의약품안전처와 그 소속기관 직제 시행규칙 일부 개정(총리령 제2106호, 2026.3.24.)",
+          "source": "식약처",
+          "status": "시행",
+          "date": "2026-03-25",
+          "url": "https://www.mfds.go.kr/brd/m_203/list.do",
+          "key_points": [],
+          "industry_impact": "",
+          "law_type": "고시/훈령",
+          "is_new": false
+        }
+      ],
+      "collected_at": "2026-06-30T18:23:00.697615"
+    },
+    {
+      "year": 2026,
+      "week_num": 14,
+      "start_date": "2026-03-30",
+      "end_date": "2026-04-05",
+      "label": "2026년 14주차",
+      "summary": "2026-03-30 ~ 2026-04-05 수집 항목 없음.",
+      "counts": {
+        "total": 0,
+        "법제처": 0,
+        "식약처": 0,
+        "식품안전나라": 0,
+        "시행": 0,
+        "예고": 0
+      },
+      "items": [],
+      "collected_at": "2026-06-30T18:23:00.697615"
+    },
+    {
+      "year": 2026,
+      "week_num": 15,
+      "start_date": "2026-04-06",
+      "end_date": "2026-04-12",
+      "label": "2026년 15주차",
+      "summary": "2026-04-06 ~ 2026-04-12 식품 법령 1건. 시행 1건 / 예고 0건.",
+      "counts": {
+        "total": 1,
+        "법제처": 0,
+        "식약처": 1,
+        "식품안전나라": 0,
+        "시행": 1,
+        "예고": 0
+      },
+      "items": [
+        {
+          "title": "「건강기능식품에 관한 법률」 일부개정법률 개정공포(제21298호, 2025.12.30.) 알림",
+          "source": "식약처",
+          "status": "시행",
+          "date": "2026-04-10",
+          "url": "https://www.mfds.go.kr/brd/m_203/list.do",
+          "key_points": [],
+          "industry_impact": "",
+          "law_type": "고시/훈령",
+          "is_new": false
+        }
+      ],
+      "collected_at": "2026-06-30T18:23:00.697615"
+    },
+    {
+      "year": 2026,
+      "week_num": 16,
+      "start_date": "2026-04-13",
+      "end_date": "2026-04-19",
+      "label": "2026년 16주차",
+      "summary": "2026-04-13 ~ 2026-04-19 수집 항목 없음.",
+      "counts": {
+        "total": 0,
+        "법제처": 0,
+        "식약처": 0,
+        "식품안전나라": 0,
+        "시행": 0,
+        "예고": 0
+      },
+      "items": [],
+      "collected_at": "2026-06-30T18:23:00.697615"
+    },
+    {
+      "year": 2026,
+      "week_num": 17,
+      "start_date": "2026-04-20",
+      "end_date": "2026-04-26",
+      "label": "2026년 17주차",
+      "summary": "2026-04-20 ~ 2026-04-26 식품 법령 2건. 시행 1건 / 예고 1건.",
+      "counts": {
+        "total": 2,
+        "법제처": 0,
+        "식약처": 2,
+        "식품안전나라": 0,
+        "시행": 1,
+        "예고": 1
+      },
+      "items": [
+        {
+          "title": "「건강기능식품에 관한 법률」 일부개정법률 개정공포(제21525호, 2026. 4. 7.) 알림",
+          "source": "식약처",
+          "status": "시행",
+          "date": "2026-04-23",
+          "url": "https://www.mfds.go.kr/brd/m_203/list.do",
+          "key_points": [],
+          "industry_impact": "",
+          "law_type": "고시/훈령",
+          "is_new": false
+        },
+        {
+          "title": "「수입식품안전관리 특별법 시행규칙」 일부개정령안 입법예고(식품의약품안전처 공고 제2026-194호)",
+          "source": "식약처",
+          "status": "예고",
+          "date": "2026-04-20",
+          "url": "https://www.mfds.go.kr/brd/m_209/list.do",
+          "key_points": [],
+          "industry_impact": "",
+          "law_type": "행정예고",
+          "is_new": false
+        }
+      ],
+      "collected_at": "2026-06-30T18:23:00.697615"
+    },
+    {
+      "year": 2026,
+      "week_num": 18,
+      "start_date": "2026-04-27",
+      "end_date": "2026-05-03",
+      "label": "2026년 18주차",
+      "summary": "2026-04-27 ~ 2026-05-03 식품 법령 2건. 시행 2건 / 예고 0건.",
+      "counts": {
+        "total": 2,
+        "법제처": 2,
+        "식약처": 0,
+        "식품안전나라": 0,
+        "시행": 2,
+        "예고": 0
+      },
+      "items": [
+        {
+          "title": "⑧ 위생관리책임자는 매년 식품위생에 관한 교육을 받아야 한다.",
+          "source": "법제처",
+          "status": "시행",
+          "date": "2026-04-28",
+          "url": "https://www.law.go.kr/lsSc.do?query=식품위생법",
+          "key_points": [],
+          "industry_impact": "",
+          "law_type": "법령",
+          "is_new": false
+        },
+        {
+          "title": "⑦ 제1항부터 제6항까지에서 규정한 사항 외에 식품위생교육기관의 지정 절차 및 평가 방법 등에 필요한 사항은 총리령으로 정한다.",
+          "source": "법제처",
+          "status": "시행",
+          "date": "2026-04-28",
+          "url": "https://www.law.go.kr/lsSc.do?query=식품위생법",
+          "key_points": [],
+          "industry_impact": "",
+          "law_type": "법령",
+          "is_new": false
+        }
+      ],
+      "collected_at": "2026-06-30T18:23:00.697615"
+    },
+    {
+      "year": 2026,
+      "week_num": 19,
+      "start_date": "2026-05-04",
+      "end_date": "2026-05-10",
+      "label": "2026년 19주차",
+      "summary": "2026-05-04 ~ 2026-05-10 식품 법령 2건. 시행 0건 / 예고 2건.",
+      "counts": {
+        "total": 2,
+        "법제처": 0,
+        "식약처": 2,
+        "식품안전나라": 0,
+        "시행": 0,
+        "예고": 2
+      },
+      "items": [
+        {
+          "title": "「어린이 식생활안전관리 특별법 시행령」 일부개정령안 입법예고(식품의약품안전처 공고 제2026-217호)",
+          "source": "식약처",
+          "status": "예고",
+          "date": "2026-05-06",
+          "url": "https://www.mfds.go.kr/brd/m_209/list.do",
+          "key_points": [],
+          "industry_impact": "",
+          "law_type": "행정예고",
+          "is_new": false
+        },
+        {
+          "title": "「축산물 또는 동물성 식품의 수입허용국가(지역) 및 수입위생요건」 일부개정고시(안) 행정예고 (식품의약품안전처 공고 제2026-225호)",
+          "source": "식약처",
+          "status": "예고",
+          "date": "2026-05-04",
+          "url": "https://www.mfds.go.kr/brd/m_209/list.do",
+          "key_points": [],
+          "industry_impact": "",
+          "law_type": "행정예고",
+          "is_new": false
+        }
+      ],
+      "collected_at": "2026-06-30T18:23:00.697615"
+    },
+    {
+      "year": 2026,
+      "week_num": 20,
+      "start_date": "2026-05-11",
+      "end_date": "2026-05-17",
+      "label": "2026년 20주차",
+      "summary": "2026-05-11 ~ 2026-05-17 식품 법령 2건. 시행 0건 / 예고 2건.",
+      "counts": {
+        "total": 2,
+        "법제처": 0,
+        "식약처": 2,
+        "식품안전나라": 0,
+        "시행": 0,
+        "예고": 2
+      },
+      "items": [
+        {
+          "title": "「식품 등의 표시ㆍ광고에 관한 법률 시행령」 일부개정령(안) 입법예고(식품의약품안전처공고 제2026-234호)",
+          "source": "식약처",
+          "status": "예고",
+          "date": "2026-05-15",
+          "url": "https://www.mfds.go.kr/brd/m_209/list.do",
+          "key_points": [],
+          "industry_impact": "",
+          "law_type": "행정예고",
+          "is_new": false
+        },
+        {
+          "title": "「식품등의 부당한 표시 또는 광고의 내용 기준」 일부개정고시(안) 행정예고 알림",
+          "source": "식약처",
+          "status": "예고",
+          "date": "2026-05-15",
+          "url": "https://www.mfds.go.kr/brd/m_209/list.do",
+          "key_points": [],
+          "industry_impact": "",
+          "law_type": "행정예고",
+          "is_new": false
+        }
+      ],
+      "collected_at": "2026-06-30T18:23:00.697615"
+    },
+    {
+      "year": 2026,
+      "week_num": 21,
+      "start_date": "2026-05-18",
+      "end_date": "2026-05-24",
+      "label": "2026년 21주차",
+      "summary": "2026-05-18 ~ 2026-05-24 수집 항목 없음.",
+      "counts": {
+        "total": 0,
+        "법제처": 0,
+        "식약처": 0,
+        "식품안전나라": 0,
+        "시행": 0,
+        "예고": 0
+      },
+      "items": [],
+      "collected_at": "2026-06-30T18:23:00.697615"
+    },
+    {
+      "year": 2026,
+      "week_num": 22,
+      "start_date": "2026-05-25",
+      "end_date": "2026-05-31",
+      "label": "2026년 22주차",
+      "summary": "2026-05-25 ~ 2026-05-31 식품 법령 5건. 시행 5건 / 예고 0건.",
+      "counts": {
+        "total": 5,
+        "법제처": 1,
+        "식약처": 4,
+        "식품안전나라": 0,
+        "시행": 5,
+        "예고": 0
+      },
+      "items": [
+        {
+          "title": "「식품위생법」 일부개정법률 개정공포(제21708호, 2026.5.26.) 알림",
+          "source": "식약처",
+          "status": "시행",
+          "date": "2026-05-27",
+          "url": "https://www.mfds.go.kr/brd/m_203/list.do",
+          "key_points": [],
+          "industry_impact": "",
+          "law_type": "고시/훈령",
+          "is_new": false
+        },
+        {
+          "title": "「식품위생법」 일부개정법률 개정공포(제21603호, 2026.4.28.) 알림",
+          "source": "식약처",
+          "status": "시행",
+          "date": "2026-05-27",
+          "url": "https://www.mfds.go.kr/brd/m_203/list.do",
+          "key_points": [],
+          "industry_impact": "",
+          "law_type": "고시/훈령",
+          "is_new": false
+        },
+        {
+          "title": "「식품위생법」 일부개정법률 개정공포(제21525호, 2026.4.7.) 알림",
+          "source": "식약처",
+          "status": "시행",
+          "date": "2026-05-27",
+          "url": "https://www.mfds.go.kr/brd/m_203/list.do",
+          "key_points": [],
+          "industry_impact": "",
+          "law_type": "고시/훈령",
+          "is_new": false
+        },
+        {
+          "title": "「식품안전기본법 시행령」 일부개정령 공포(대통령령 제 36122호, 2026.2.19.) 알림",
+          "source": "식약처",
+          "status": "시행",
+          "date": "2026-05-27",
+          "url": "https://www.mfds.go.kr/brd/m_203/list.do",
+          "key_points": [],
+          "industry_impact": "",
+          "law_type": "고시/훈령",
+          "is_new": false
+        },
+        {
+          "title": "⑤ 제36조제1항 각 호에 따른 영업 중 대통령령으로 정하는 영업을 하려는 자는 대통령령으로 정하는 바에 따라 영업 종류별 또는 영업소별로 식품의약품안전처장 또는 특별자치시장ㆍ특별자치도지사ㆍ시장ㆍ군수ㆍ구청장에게 등록하여야 하며, 등록한 사항 중 대통령령으로 정하는 중요한 사항을 변경할 때에도 또한 같다. 다만, 폐업하거나 대통령령으로 정하는 중요한 사항을 제외한 경미한 사항을 변경할 때에는 식품의약품안전처장 또는 특별자치시장ㆍ특별자치도지사ㆍ시장ㆍ군수ㆍ구청장에게 신고하여야 한다. <신설 2011. 6. 7., 2013. 3. 23., 2016. 2. 3.>",
+          "source": "법제처",
+          "status": "시행",
+          "date": "2026-05-26",
+          "url": "https://www.law.go.kr/lsSc.do?query=식품위생법",
+          "key_points": [],
+          "industry_impact": "",
+          "law_type": "법령",
+          "is_new": false
+        }
+      ],
+      "collected_at": "2026-06-30T18:23:00.697615"
+    },
+    {
+      "year": 2026,
+      "week_num": 23,
+      "start_date": "2026-06-01",
+      "end_date": "2026-06-07",
+      "label": "2026년 23주차",
+      "summary": "2026-06-01 ~ 2026-06-07 식품 법령 2건. 시행 2건 / 예고 0건.",
+      "counts": {
+        "total": 2,
+        "법제처": 1,
+        "식약처": 1,
+        "식품안전나라": 0,
+        "시행": 2,
+        "예고": 0
+      },
+      "items": [
+        {
+          "title": "「건강기능식품에 관한 법률 시행규칙」 일부개정령 개정공포(총리령 제2118호, 2026.6.2.) 알림",
+          "source": "식약처",
+          "status": "시행",
+          "date": "2026-06-04",
+          "url": "https://www.mfds.go.kr/brd/m_203/list.do",
+          "key_points": [],
+          "industry_impact": "",
+          "law_type": "고시/훈령",
+          "is_new": false
+        },
+        {
+          "title": "식품의약품안전처",
+          "source": "법제처",
+          "status": "시행",
+          "date": "2026-06-02",
+          "url": "https://www.law.go.kr/lsSc.do?query=건강기능식품",
+          "key_points": [],
+          "industry_impact": "",
+          "law_type": "법령",
+          "is_new": false
+        }
+      ],
+      "collected_at": "2026-06-30T18:23:00.697615"
+    },
+    {
+      "year": 2026,
+      "week_num": 24,
+      "start_date": "2026-06-08",
+      "end_date": "2026-06-14",
+      "label": "2026년 24주차",
+      "summary": "2026-06-08 ~ 2026-06-14 식품 법령 6건. 시행 6건 / 예고 0건.",
+      "counts": {
+        "total": 6,
+        "법제처": 5,
+        "식약처": 1,
+        "식품안전나라": 0,
+        "시행": 6,
+        "예고": 0
+      },
+      "items": [
+        {
+          "title": "「식품위생법」 일부개정법률 개정공포(제21794호, 2026.6.9.) 알림",
+          "source": "식약처",
+          "status": "시행",
+          "date": "2026-06-09",
+          "url": "https://www.mfds.go.kr/brd/m_203/list.do",
+          "key_points": [],
+          "industry_impact": "",
+          "law_type": "고시/훈령",
+          "is_new": false
+        },
+        {
+          "title": "⑦ 식품안전관리인증기준적용업소의 인증요건ㆍ인증절차 및 제6항에 따른 기술적ㆍ경제적 지원에 필요한 사항은 총리령으로 정한다. <개정 2010. 1. 18., 2013. 3. 23., 2014. 5. 28., 2020. 12. 29.>",
+          "source": "법제처",
+          "status": "시행",
+          "date": "2026-06-09",
+          "url": "https://www.law.go.kr/lsSc.do?query=식품위생법",
+          "key_points": [],
+          "industry_impact": "",
+          "law_type": "법령",
+          "is_new": false
+        },
+        {
+          "title": "제48조의3(식품안전관리인증기준적용업소에 대한 조사ㆍ평가 등) ① 식품의약품안전처장은 식품안전관리인증기준적용업소에 대하여 매년 식품안전관리인증기준의 준수 여부와 제48조제5항에 따른 교육훈련 수료 여부를 조사ㆍ평가(이하 “정기조사”라 한다)하여야 한다. <개정 2026. 6. 9.>",
+          "source": "법제처",
+          "status": "시행",
+          "date": "2026-06-09",
+          "url": "https://www.law.go.kr/lsSc.do?query=식품위생법",
+          "key_points": [],
+          "industry_impact": "",
+          "law_type": "법령",
+          "is_new": false
+        },
+        {
+          "title": "② 식품의약품안전처장은 식품위해 예방을 위하여 필요하다고 인정하는 경우에는 정기조사 외에 식품안전관리인증기준적용업소에 대하여 수시로 조사ㆍ평가(이하 “수시조사”라 한다)를 할 수 있다. <신설 2026. 6. 9.>",
+          "source": "법제처",
+          "status": "시행",
+          "date": "2026-06-09",
+          "url": "https://www.law.go.kr/lsSc.do?query=식품위생법",
+          "key_points": [],
+          "industry_impact": "",
+          "law_type": "법령",
+          "is_new": false
+        },
+        {
+          "title": "③ 제48조제12항에 따라 정기조사 업무를 위탁받은 기관의 장은 정기조사를 실시하고 그 결과를 총리령으로 정하는 바에 따라 식품의약품안전처장(대통령령으로 정하는 그 소속기관의 장을 포함한다)에게 통보하여야 한다. <신설 2026. 6. 9.>",
+          "source": "법제처",
+          "status": "시행",
+          "date": "2026-06-09",
+          "url": "https://www.law.go.kr/lsSc.do?query=식품위생법",
+          "key_points": [],
+          "industry_impact": "",
+          "law_type": "법령",
+          "is_new": false
+        },
+        {
+          "title": "⑤ 식품의약품안전처장은 정기조사 결과 그 결과가 우수한 식품안전관리인증기준적용업소에 대해서는 정기조사를 면제하는 등 행정적ㆍ재정적 지원을 할 수 있다. 다만, 식품안전관리인증기준적용업소가 제48조의2제1항에 따른 인증 유효기간 내에 이 법을 위반하여 영업의 정지, 허가 취소 등 행정처분을 받은 경우에는 정기조사를 면제하여서는 아니 된다. <개정 2026. 6. 9.>",
+          "source": "법제처",
+          "status": "시행",
+          "date": "2026-06-09",
+          "url": "https://www.law.go.kr/lsSc.do?query=식품위생법",
+          "key_points": [],
+          "industry_impact": "",
+          "law_type": "법령",
+          "is_new": false
+        }
+      ],
+      "collected_at": "2026-06-30T18:23:00.697615"
+    },
+    {
+      "year": 2026,
+      "week_num": 25,
+      "start_date": "2026-06-15",
+      "end_date": "2026-06-21",
+      "label": "2026년 25주차",
+      "summary": "2026-06-15 ~ 2026-06-21 수집 항목 없음.",
+      "counts": {
+        "total": 0,
+        "법제처": 0,
+        "식약처": 0,
+        "식품안전나라": 0,
+        "시행": 0,
+        "예고": 0
+      },
+      "items": [],
+      "collected_at": "2026-06-30T18:23:00.697615"
+    },
+    {
+      "year": 2026,
+      "week_num": 26,
+      "start_date": "2026-06-22",
+      "end_date": "2026-06-28",
+      "label": "2026년 26주차",
+      "summary": "2026-06-22 ~ 2026-06-28 식품 법령 3건. 시행 0건 / 예고 3건.",
+      "counts": {
+        "total": 3,
+        "법제처": 0,
+        "식약처": 3,
+        "식품안전나라": 0,
+        "시행": 0,
+        "예고": 3
+      },
+      "items": [
+        {
+          "title": "「축산물 위생관리법 시행규칙」 일부개정령(안) 입법예고(식품의약품안전처공고 제2026-293호)",
+          "source": "식약처",
+          "status": "예고",
+          "date": "2026-06-25",
+          "url": "https://www.mfds.go.kr/brd/m_209/list.do",
+          "key_points": [],
+          "industry_impact": "",
+          "law_type": "행정예고",
+          "is_new": false
+        },
+        {
+          "title": "「축산물의 자가품질검사 규정」 일부개정고시안 행정예고(식품의약품안전처 공고 제2026-297호)",
+          "source": "식약처",
+          "status": "예고",
+          "date": "2026-06-23",
+          "url": "https://www.mfds.go.kr/brd/m_209/list.do",
+          "key_points": [],
+          "industry_impact": "",
+          "law_type": "행정예고",
+          "is_new": false
+        },
+        {
+          "title": "식품등의 표시기준 일부개정고시(안) 행정예고 알림(식품의약품안전처 공고 제2026-296호)",
+          "source": "식약처",
+          "status": "예고",
+          "date": "2026-06-22",
+          "url": "https://www.mfds.go.kr/brd/m_209/list.do",
+          "key_points": [],
+          "industry_impact": "",
+          "law_type": "행정예고",
+          "is_new": false
+        }
+      ],
+      "collected_at": "2026-06-30T18:23:00.697615"
+    },
+    {
+      "year": 2026,
+      "week_num": 27,
+      "start_date": "2026-06-29",
+      "end_date": "2026-06-30",
+      "label": "2026년 27주차",
+      "summary": "2026-06-29 ~ 2026-06-30 식품 법령 2건. 시행 0건 / 예고 2건.",
+      "counts": {
+        "total": 2,
+        "법제처": 0,
+        "식약처": 2,
+        "식품안전나라": 0,
+        "시행": 0,
+        "예고": 2
+      },
+      "items": [
+        {
+          "title": "식품의 기준 및 규격 일부개정고시(안) 행정예고(식품의약품안전처 공고 제2026-311호)",
+          "source": "식약처",
+          "status": "예고",
+          "date": "2026-06-30",
+          "url": "https://www.mfds.go.kr/brd/m_209/list.do",
+          "key_points": [],
+          "industry_impact": "",
+          "law_type": "행정예고",
+          "is_new": true
+        },
+        {
+          "title": "식품의 기준 및 규격 일부개정고시(안) 행정예고(식품의약품안전처 공고 제2026-310호)",
+          "source": "식약처",
+          "status": "예고",
+          "date": "2026-06-30",
+          "url": "https://www.mfds.go.kr/brd/m_209/list.do",
+          "key_points": [],
+          "industry_impact": "",
+          "law_type": "행정예고",
+          "is_new": true
+        }
+      ],
+      "collected_at": "2026-06-30T18:23:00.697615"
     }
   ],
-  "total_weeks": 1,
-  "last_updated": "2026-06-30T07:20:52.075082"
+  "total_weeks": 26,
+  "last_updated": "2026-06-30T18:23:00.697615"
 }
