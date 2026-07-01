@@ -8,7 +8,7 @@
 
 1. 이 저장소를 GitHub에 push
 2. Settings → Pages → `/docs` 폴더로 배포 설정
-3. Settings → Secrets → `LAW_API_KEY` 등록 (법제처 OpenAPI 키)
+3. Settings → Secrets → `LAW_API_KEY`(법제처 OpenAPI 키), `ANTHROPIC_API_KEY`(Claude API 키, 항목 요약 생성용) 등록
 4. Actions → `주간 식품 법령 수집` → `Run workflow` 로 첫 실행
 
 자세한 내용은 `설계서.md` 참고.

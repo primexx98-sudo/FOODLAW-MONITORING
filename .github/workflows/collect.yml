@@ -29,6 +29,11 @@ jobs:
           LAW_API_KEY: ${{ secrets.LAW_API_KEY }}
         run: python scripts/collect_all.py
 
+      - name: Claude API로 신규 항목 요약
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: python scripts/summarize_items.py
+
       - name: HTML 사이트 빌드
         run: python scripts/build_site.py
 

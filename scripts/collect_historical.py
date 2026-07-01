@@ -29,6 +29,21 @@ def is_food_related(title: str) -> bool:
     return any(kw in title for kw in FOOD_KEYWORDS)
 
 
+ARTICLE_FRAGMENT_RE = re.compile(r"^([①-⑩]|\d+\.\s|제\d+조)")
+NON_LAW_TITLES = {"식품의약품안전처", "법제처", "검색결과", "검색결과없음"}
+
+
+def is_article_fragment(title: str) -> bool:
+    """법령 조문 텍스트 파편(항/호/부칙 등)이나 기관명만 있는 경우는 실제 법령명이 아니므로 제외."""
+    if title in NON_LAW_TITLES:
+        return True
+    if ARTICLE_FRAGMENT_RE.match(title):
+        return True
+    if len(title) > 70 and ("<개정" in title or "<신설" in title):
+        return True
+    return False
+
+
 def clean_title(title: str) -> str:
     return title.replace("새로운게시물", "").replace("NEW", "").strip()
 
@@ -173,6 +188,8 @@ def scrape_lawgokr(page, max_pages: int = 5):
 
                 title = lines[i - 1].strip() if i > 0 else line
                 if len(title) < 5 or not is_food_related(title):
+                    continue
+                if is_article_fragment(title):
                     continue
 
                 all_items.append({

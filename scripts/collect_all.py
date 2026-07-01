@@ -96,7 +96,7 @@ def main():
 
     archive = load_archive()
 
-    # 같은 연도+주차가 이미 있으면 교체, 없으면 맨 앞에 추가
+    # 같은 연도+주차가 이미 있으면 교체, 없으면 추가
     match = next(
         (w for w in archive["weeks"]
          if w.get("year") == week_info["year"] and w.get("week_num") == week_info["week_num"]),
@@ -107,9 +107,11 @@ def main():
         archive["weeks"][idx] = week_entry
         print("기존 주차 항목 업데이트")
     else:
-        archive["weeks"].insert(0, week_entry)
+        archive["weeks"].append(week_entry)
         print("새 주차 항목 추가")
 
+    # 저장은 항상 연도+주차 오름차순 (과거 → 최신) 유지
+    archive["weeks"].sort(key=lambda w: (w.get("year", 0), w.get("week_num", 0)))
     archive["total_weeks"] = len(archive["weeks"])
     archive["last_updated"] = datetime.now().isoformat()
 
