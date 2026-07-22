@@ -12,7 +12,10 @@ from datetime import datetime, timedelta
 # 스크립트 폴더를 경로에 추가 (sibling 모듈 import용)
 sys.path.insert(0, os.path.dirname(__file__))
 
-from collect_lawgokr import collect as collect_law
+# 법제처(collect_lawgokr) 연동은 2026-07-22 제외 — LAW_API_KEY가 계속 빈 응답을
+# 반환해 원인 파악이 필요했는데, 식약처 자체 게시판(법/시행령/시행규칙 + 입법·행정예고)
+# 만으로 충분히 커버된다고 판단해 사용자가 제외 결정. collect_lawgokr.py 파일 자체는
+# 남겨둠 — 키 문제가 해결되면 다시 넣을 수 있음.
 from collect_mfds import collect as collect_mfds
 from collect_foodsafety import collect as collect_foodsafety
 
@@ -63,11 +66,10 @@ def main():
     print("식품 법령 수집 시작:", datetime.now().strftime("%Y-%m-%d %H:%M"))
     print("=" * 50)
 
-    law_items = collect_law()
     mfds_items = collect_mfds()
     food_items = collect_foodsafety()
 
-    all_items = deduplicate(law_items + mfds_items + food_items)
+    all_items = deduplicate(mfds_items + food_items)
     # 날짜 최신순 정렬
     all_items.sort(key=lambda x: x.get("date", ""), reverse=True)
 
@@ -79,14 +81,12 @@ def main():
         "summary": (
             f"{week_info['start_date']} ~ {week_info['end_date']} 기간 "
             f"식품 법령 개정 {len(all_items)}건 수집. "
-            f"법제처 {len(law_items)}건 · 식약처 {len(mfds_items)}건 · "
-            f"식품안전나라 {len(food_items)}건."
+            f"식약처 {len(mfds_items)}건 · 식품안전나라 {len(food_items)}건."
         ),
         "items": all_items,
         "collected_at": datetime.now().isoformat(),
         "counts": {
             "total": len(all_items),
-            "법제처": len(law_items),
             "식약처": len(mfds_items),
             "식품안전나라": len(food_items),
             "시행": sum(1 for i in all_items if i.get("status") == "시행"),
