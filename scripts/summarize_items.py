@@ -1,7 +1,10 @@
-"""Claude API를 사용해 archive.json 각 항목의 핵심 내용·업계 영향·주간 요약을 생성합니다.
+"""Gemini API(무료 티어)를 사용해 archive.json 각 항목의 핵심 내용·업계 영향·주간 요약을 생성합니다.
+
+2026-07-22: Anthropic Claude API(유료 크레딧 필요)에서 Google Gemini API(무료 티어)로 교체.
+API 키는 https://aistudio.google.com/apikey 에서 무료로 발급받는다.
 
 실행:
-  $env:ANTHROPIC_API_KEY="sk-ant-..."
+  $env:GEMINI_API_KEY="AIza..."
   python scripts/summarize_items.py
 """
 
@@ -13,16 +16,12 @@ import time
 REPO_ROOT = os.path.join(os.path.dirname(__file__), "..")
 ARCHIVE_PATH = os.path.join(REPO_ROOT, "data", "archive.json")
 
-MODEL = "claude-haiku-4-5-20251001"
+MODEL = "gemini-2.0-flash"
 
 
-def call_claude(client, prompt: str) -> str:
-    resp = client.messages.create(
-        model=MODEL,
-        max_tokens=1024,
-        messages=[{"role": "user", "content": prompt}],
-    )
-    return resp.content[0].text.strip()
+def call_gemini(client, prompt: str) -> str:
+    resp = client.models.generate_content(model=MODEL, contents=prompt)
+    return resp.text.strip()
 
 
 def summarize_item(client, item: dict) -> dict:
@@ -60,17 +59,17 @@ def summarize_item(client, item: dict) -> dict:
 - related_laws는 제목에서 유추된 관련 법령 1~3개, URL은 법제처 또는 식약처
 - 한국어로만 작성"""
 
+    text = ""
     try:
-        text = call_claude(client, prompt)
+        text = call_gemini(client, prompt)
         # JSON 블록 추출
-        text = text.strip()
         if "```json" in text:
             text = text.split("```json")[1].split("```")[0].strip()
         elif "```" in text:
             text = text.split("```")[1].split("```")[0].strip()
         return json.loads(text)
     except Exception as e:
-        print(f"    파싱 오류 ({e}): {text[:100] if 'text' in dir() else 'N/A'}")
+        print(f"    파싱 오류 ({e}): {text[:100]}")
         return {
             "key_points": [],
             "industry_impact": "",
@@ -105,7 +104,7 @@ def summarize_week(client, week: dict) -> str:
 - 다음 주 예상 발령 가능성이 있는 항목 언급 (있을 경우)"""
 
     try:
-        return call_claude(client, prompt)
+        return call_gemini(client, prompt)
     except Exception as e:
         print(f"    주간 요약 오류: {e}")
         return ""
@@ -116,18 +115,19 @@ def needs_update(item: dict) -> bool:
 
 
 def main():
-    api_key = os.environ.get("ANTHROPIC_API_KEY", "")
+    api_key = os.environ.get("GEMINI_API_KEY", "")
     if not api_key:
-        print("[경고] ANTHROPIC_API_KEY 환경변수가 설정되지 않아 요약 단계를 건너뜁니다.")
-        print("  PowerShell: $env:ANTHROPIC_API_KEY='sk-ant-...'")
-        print("  GitHub Actions: Settings → Secrets → ANTHROPIC_API_KEY 등록")
+        print("[경고] GEMINI_API_KEY 환경변수가 설정되지 않아 요약 단계를 건너뜁니다.")
+        print("  발급: https://aistudio.google.com/apikey (무료)")
+        print("  PowerShell: $env:GEMINI_API_KEY='AIza...'")
+        print("  GitHub Actions: Settings → Secrets → GEMINI_API_KEY 등록")
         return
 
     try:
-        import anthropic
-        client = anthropic.Anthropic(api_key=api_key)
+        from google import genai
+        client = genai.Client(api_key=api_key)
     except ImportError:
-        print("[오류] anthropic 패키지가 없습니다: pip install anthropic")
+        print("[오류] google-genai 패키지가 없습니다: pip install google-genai")
         sys.exit(1)
 
     with open(ARCHIVE_PATH, encoding="utf-8") as f:
@@ -163,12 +163,13 @@ def main():
             week_updated = True
             updated += 1
             print("완료")
-            time.sleep(0.3)  # rate limit 여유
+            time.sleep(1.0)  # 무료 티어 분당 호출 한도 여유
 
         # 주간 요약이 없거나 항목 요약 후 재생성
         if week_updated or not week.get("weekly_summary"):
             print(f"  [{label}] 주간 요약 생성 중...")
             week["weekly_summary"] = summarize_week(client, week)
+            time.sleep(1.0)
 
     import datetime
     archive["last_updated"] = datetime.datetime.now().isoformat()

@@ -27,9 +27,9 @@ jobs:
       - name: 법령 데이터 수집
         run: python scripts/collect_all.py
 
-      - name: Claude API로 신규 항목 요약
+      - name: Gemini API로 신규 항목 요약
         env:
-          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         run: python scripts/summarize_items.py
 
       - name: HTML 사이트 빌드
