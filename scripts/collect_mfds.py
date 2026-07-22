@@ -3,9 +3,14 @@
 식약처 법령/고시 게시판을 파싱합니다.
 """
 
+import os
+import sys
 import requests
 from bs4 import BeautifulSoup
 from datetime import datetime, timedelta
+
+sys.path.insert(0, os.path.dirname(__file__))
+from law_type_utils import is_food_related, detect_law_type
 
 # 식약처 법령·고시·훈령·예규 게시판
 BOARD_URL = "https://www.mfds.go.kr/brd/m_228/list.do"
@@ -65,6 +70,10 @@ def collect():
             title = title_el.get_text(strip=True)
             if not title:
                 continue
+            # MFDS는 식품 외 의약품·의료기기·화장품·마약류도 같은 게시판에서 다루므로
+            # 식품 관련 항목만 남긴다 (law_type_utils.is_food_related)
+            if not is_food_related(title):
+                continue
 
             # 날짜는 보통 마지막에서 두 번째 열
             date_text = ""
@@ -80,16 +89,17 @@ def collect():
 
             href = title_el.get("href", "")
             url = href if href.startswith("http") else "https://www.mfds.go.kr" + href
+            status = detect_status(title)
 
             items.append({
                 "title": title,
                 "source": "식약처",
-                "status": detect_status(title),
+                "status": status,
                 "date": date_obj.strftime("%Y-%m-%d") if date_obj else date_text,
                 "url": url,
                 "key_points": [],
                 "industry_impact": "",
-                "law_type": "고시/훈령",
+                "law_type": "행정예고" if status == "예고" else detect_law_type(title),
                 "is_new": True,
             })
 

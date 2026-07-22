@@ -1,8 +1,13 @@
 """식품안전나라 공지사항·법령정보에서 최근 게시물을 수집합니다."""
 
+import os
+import sys
 import requests
 from bs4 import BeautifulSoup
 from datetime import datetime, timedelta
+
+sys.path.insert(0, os.path.dirname(__file__))
+from law_type_utils import is_food_related, detect_law_type
 
 BOARD_URL = (
     "https://www.foodsafetykorea.go.kr/portal/board/boardList.do"
@@ -53,6 +58,8 @@ def collect():
             title = title_el.get_text(strip=True)
             if not title:
                 continue
+            if not is_food_related(title):
+                continue
 
             cols = row.select("td")
             date_text = ""
@@ -77,15 +84,16 @@ def collect():
             else:
                 url = "https://www.foodsafetykorea.go.kr/portal/board/" + href
 
+            status = detect_status(title)
             items.append({
                 "title": title,
                 "source": "식품안전나라",
-                "status": detect_status(title),
+                "status": status,
                 "date": date_obj.strftime("%Y-%m-%d") if date_obj else date_text,
                 "url": url,
                 "key_points": [],
                 "industry_impact": "",
-                "law_type": "공지사항",
+                "law_type": "행정예고" if status == "예고" else detect_law_type(title, fallback="공지사항"),
                 "is_new": True,
             })
 

@@ -5,8 +5,12 @@ API 키는 환경변수 LAW_API_KEY 에서 읽습니다.
 """
 
 import os
+import sys
 import requests
 from datetime import datetime, timedelta
+
+sys.path.insert(0, os.path.dirname(__file__))
+from law_type_utils import normalize_lawgokr_type
 
 API_KEY = os.environ.get("LAW_API_KEY", "")
 BASE_URL = "https://www.law.go.kr/DRF/lawSearch.do"
@@ -71,13 +75,16 @@ def collect():
                     continue
 
                 name = law.get("법령명한글", "")
-                law_type = law.get("법령구분명", "법률")
+                # law.go.kr API의 공식 법령구분명(대통령령/부령 등)을 법/시행령/시행규칙/행정예고
+                # 관용 명칭으로 정규화 — law_type_utils.py 참고
+                law_type = normalize_lawgokr_type(law.get("법령구분명", ""))
 
                 # 상태 분류
-                if "시행" in name or law.get("시행일자", ""):
-                    status = "시행"
-                elif "예고" in name:
+                if "예고" in name:
                     status = "예고"
+                    law_type = "행정예고"
+                elif "시행" in name or law.get("시행일자", ""):
+                    status = "시행"
                 else:
                     status = "공포"
 
