@@ -1,112 +1,22 @@
-"""식품안전나라 공지사항·법령정보에서 최근 게시물을 수집합니다."""
+"""식품안전나라(foodsafetykorea.go.kr)에서 법령 개정 게시물을 수집합니다.
 
-import os
-import sys
-import requests
-from bs4 import BeautifulSoup
-from datetime import datetime, timedelta
+2026-07-22 확인: 기존 BOARD_URL(menu_no=2815)은 더 이상 유효하지 않아
+"잘못된 접근입니다" 오류를 반환한다. 대체 게시판을 찾아봤으나, 식품안전나라의
+"법령 정보" 메뉴(menu_no=4805 등)는 최근 개정 소식을 알리는 게시판이 아니라
+현행 법령 전문을 보여주는 정적 참고자료 페이지였다 — 이 프로젝트가 필요로 하는
+"최근 변경분"과는 성격이 다르다.
 
-sys.path.insert(0, os.path.dirname(__file__))
-from law_type_utils import is_food_related, detect_law_type
-
-BOARD_URL = (
-    "https://www.foodsafetykorea.go.kr/portal/board/boardList.do"
-    "?menu_no=2815&menu_grp=MENU_NEW02"
-)
-HEADERS = {
-    "User-Agent": (
-        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-        "AppleWebKit/537.36 (KHTML, like Gecko) "
-        "Chrome/120.0.0.0 Safari/537.36"
-    )
-}
-
-
-def parse_date(text):
-    text = text.strip().replace(".", "-")
-    try:
-        return datetime.strptime(text, "%Y-%m-%d")
-    except ValueError:
-        return None
-
-
-def detect_status(title):
-    if "예고" in title or "입법" in title:
-        return "예고"
-    if "개정" in title or "시행" in title:
-        return "시행"
-    return "공지"
+식품 법령의 실질적인 제정/개정 공지는 소관 부처인 식약처(MFDS)가 이미
+collect_mfds.py(법/시행령/시행규칙 + 입법·행정예고 게시판, 식품 카테고리 필터 적용)로
+커버하고 있으므로, 이 수집기는 일단 비활성화 상태로 둔다.
+"""
 
 
 def collect():
-    items = []
-    cutoff = datetime.today() - timedelta(days=14)
-
-    try:
-        r = requests.get(BOARD_URL, headers=HEADERS, timeout=15)
-        r.raise_for_status()
-        r.encoding = "utf-8"
-
-        soup = BeautifulSoup(r.text, "html.parser")
-        rows = soup.select("table tbody tr")
-
-        for row in rows:
-            title_el = row.select_one("td a")
-            if not title_el:
-                continue
-
-            title = title_el.get_text(strip=True)
-            if not title:
-                continue
-            if not is_food_related(title):
-                continue
-
-            cols = row.select("td")
-            date_text = ""
-            for col in reversed(cols):
-                text = col.get_text(strip=True)
-                if "-" in text and len(text) == 10:
-                    date_text = text
-                    break
-                if "." in text and len(text) == 10:
-                    date_text = text
-                    break
-
-            date_obj = parse_date(date_text)
-            if date_obj and date_obj < cutoff:
-                continue
-
-            href = title_el.get("href", "")
-            if href.startswith("http"):
-                url = href
-            elif href.startswith("/"):
-                url = "https://www.foodsafetykorea.go.kr" + href
-            else:
-                url = "https://www.foodsafetykorea.go.kr/portal/board/" + href
-
-            status = detect_status(title)
-            items.append({
-                "title": title,
-                "source": "식품안전나라",
-                "status": status,
-                "date": date_obj.strftime("%Y-%m-%d") if date_obj else date_text,
-                "url": url,
-                "key_points": [],
-                "industry_impact": "",
-                "law_type": "행정예고" if status == "예고" else detect_law_type(title, fallback="공지사항"),
-                "is_new": True,
-            })
-
-        print(f"[식품안전나라] {len(items)}건 수집")
-
-    except Exception as e:
-        print(f"[식품안전나라] 수집 오류: {e}")
-
-    return items
+    print("[식품안전나라] 게시판 URL 무효화 확인(2026-07-22) - 대체 게시판을 찾을 때까지 건너뜀")
+    return []
 
 
 if __name__ == "__main__":
     result = collect()
     print(f"\n식품안전나라 수집 결과: {len(result)}건")
-    for item in result:
-        print(f"  - {item['date']} [{item['status']}] {item['title']}")
