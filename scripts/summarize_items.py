@@ -16,7 +16,7 @@ import time
 REPO_ROOT = os.path.join(os.path.dirname(__file__), "..")
 ARCHIVE_PATH = os.path.join(REPO_ROOT, "data", "archive.json")
 
-MODEL = "gemini-2.0-flash"
+MODEL = "gemini-flash-latest"
 
 
 def call_gemini(client, prompt: str) -> str:
