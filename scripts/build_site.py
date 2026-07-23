@@ -2,6 +2,7 @@
 
 import json
 import os
+import re
 from datetime import datetime
 
 REPO_ROOT = os.path.join(os.path.dirname(__file__), "..")
@@ -48,6 +49,48 @@ def render_key_points(key_points):
     return f'<div class="section-label">핵심 내용</div><ul class="key-points">{rows}</ul>'
 
 
+EXCERPT_MAX_CHARS = 500
+
+
+def extract_excerpt(body_text):
+    """AI 요약이 아직 없는 항목(대부분 2023~2025년 백로그, 하루 10건 제한으로 순차
+    처리 중)도 상세페이지에서 이미 수집해둔 실제 본문(body_text)이 있으면 그걸
+    그대로 보여준다 — 기다릴 필요 없이 즉시 확인 가능하고, 원문이라 지어낼 위험도 없음.
+    "개정이유 및 주요내용" 섹션을 우선 추출하고, 못 찾으면 본문 앞부분을 그대로 보여준다."""
+    if not body_text:
+        return ""
+    # 공고마다 "개정이유 및 주요내용"/"개정 이유"+"주요 내용" 등 띄어쓰기·분리 방식이
+    # 다름. 앞머리 안내문("...개정 이유 및 주요 내용을 「행정절차법」에 따라 공고합니다")에도
+    # "개정 이유"라는 말이 인라인으로 섞여 있어 그냥 찾으면 그 문장에서 멈춰버리므로,
+    # 반드시 "1." 로 시작하는 번호 매긴 섹션 제목만 매칭한다.
+    m = re.search(r"1\.\s*개정\s*이유", body_text)
+    if not m:
+        excerpt = body_text
+    else:
+        rest = body_text[m.start():]
+        end_markers = ["\n2. 의견제출", "\n2.의견제출", "2. 의견제출", "\n의견제출"]
+        end = len(rest)
+        for em in end_markers:
+            p = rest.find(em)
+            if p != -1:
+                end = min(end, p)
+        excerpt = rest[:end].strip()
+    excerpt = excerpt.strip()
+    if len(excerpt) > EXCERPT_MAX_CHARS:
+        excerpt = excerpt[:EXCERPT_MAX_CHARS].rstrip() + "…"
+    return excerpt
+
+
+def render_raw_excerpt(body_text):
+    excerpt = extract_excerpt(body_text)
+    if not excerpt:
+        return ""
+    return (
+        '<div class="section-label">원문 발췌 (AI 요약 대기 중)</div>'
+        f'<div class="raw-excerpt">{esc(excerpt)}</div>'
+    )
+
+
 def render_impact(impact):
     if not impact:
         return ""
@@ -80,6 +123,7 @@ def render_item(item):
     key_points = item.get("key_points", [])
     impact = item.get("industry_impact", "")
     related_laws = item.get("related_laws", [])
+    body_text = item.get("body_text", "")
     is_new = item.get("is_new", False)
 
     src_cls = SOURCE_COLORS.get(source, "tag-gray")
@@ -87,8 +131,15 @@ def render_item(item):
     new_badge = '<span class="badge-new">NEW</span>' if is_new else ""
     interest_badge = '<span class="tag tag-interest">관심</span>' if is_interest(item) else ""
 
-    body_html = render_key_points(key_points) + render_impact(impact) + render_related_laws(related_laws, url)
-    has_body = bool(key_points or impact or related_laws)
+    # key_points(AI 요약)가 아직 없으면 원문 발췌로 대체 — 하루 10건 제한으로
+    # 요약이 순차 처리 중인 과거 항목(2023~2025)도 즉시 내용을 볼 수 있게 함
+    if key_points:
+        main_html = render_key_points(key_points)
+    else:
+        main_html = render_raw_excerpt(body_text)
+
+    body_html = main_html + render_impact(impact) + render_related_laws(related_laws, url)
+    has_body = bool(key_points or impact or related_laws or body_text)
     expandable = "expandable" if has_body else ""
 
     return f"""
@@ -393,6 +444,11 @@ def build():
     .key-points li:last-child{{border-bottom:none;}}
     .kp-num{{color:var(--green);font-weight:700;flex-shrink:0;min-width:16px;}}
     .kp-text{{flex:1;}}
+    .raw-excerpt{{
+      font-size:0.83rem;color:var(--sub);line-height:1.7;margin-bottom:12px;
+      white-space:pre-line;background:var(--bg2);border:1px solid var(--border);
+      border-radius:4px;padding:10px 12px;
+    }}
 
     /* ── IMPACT ── */
     .impact-box{{
