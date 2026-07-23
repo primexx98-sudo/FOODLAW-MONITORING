@@ -57,16 +57,19 @@ def render_impact(impact):
 
 
 def render_related_laws(related_laws, source_url):
-    links = []
+    # 2026-07-23: related_laws는 더 이상 URL을 포함하지 않음 — 예전엔 Gemini/Claude가
+    # law.go.kr URL을 스스로 지어내 깨진 링크가 나올 위험이 있었음. 이제 본문에 실제
+    # 「」로 인용된 법령명만 텍스트 배지로 표시(클릭 불가), 실제 링크는 원문 하나만 제공.
+    tags = []
     if related_laws:
         for law in related_laws:
-            title = esc(law.get("title", "관련 법령"))
-            url = esc(law.get("url", "#"))
-            links.append(f'<a class="law-btn" href="{url}" target="_blank" rel="noopener">📄 {title}</a>')
+            name = law.get("title") if isinstance(law, dict) else law
+            if name:
+                tags.append(f'<span class="law-tag">📄 {esc(name)}</span>')
     return f"""
     <div class="law-footer">
       <a class="btn-original" href="{esc(source_url)}" target="_blank" rel="noopener">원문 바로가기</a>
-      {"".join(links)}
+      {"".join(tags)}
     </div>"""
 
 
@@ -406,6 +409,11 @@ def build():
       display:inline-flex;align-items:center;gap:4px;
     }}
     .law-btn:hover{{background:var(--surface);color:var(--text);}}
+    .law-tag{{
+      background:var(--surface2);border:1px solid var(--border2);color:var(--sub);
+      padding:4px 10px;border-radius:4px;font-size:0.74rem;
+      display:inline-flex;align-items:center;gap:4px;
+    }}
 
     .no-items{{color:var(--sub);font-size:0.86rem;padding:16px 4px;}}
 

@@ -30,9 +30,46 @@ def summarize_item(client, item: dict) -> dict:
     status = item.get("status", "")
     date = item.get("date", "")
     law_type = item.get("law_type", "")
+    body_text = item.get("body_text", "")
 
-    prompt = f"""당신은 식품산업 법령 전문 분석가입니다.
-아래 식품 법령 개정 정보를 분석해 JSON으로 반환하세요.
+    if body_text:
+        # 2026-07-23: 상세페이지 실제 본문(개정이유·주요내용·의견제출 등)을 그대로
+        # 근거로 제공 — 이전에는 제목만 주고 "분석"을 요청해 모델이 그럴듯한 내용을
+        # 지어내는 문제가 있었음. related_laws도 모델이 URL을 지어내 깨진 링크가
+        # 나올 위험이 있어 제거하고, 본문에 실제로 「」로 인용된 법령명만 뽑게 함.
+        prompt = f"""당신은 식품산업 법령 전문 분석가입니다.
+아래는 식약처 공고 상세페이지의 실제 본문입니다. 이 본문에 실제로 적힌 내용만 근거로 분석해 JSON으로 반환하세요.
+본문에 없는 내용은 절대 추측하거나 지어내지 마세요.
+
+제목: {title}
+출처: {source}
+상태: {status} ({law_type})
+날짜: {date}
+
+--- 공고 본문 ---
+{body_text}
+--- 본문 끝 ---
+
+다음 형식으로만 반환 (다른 텍스트 없이 JSON만):
+{{
+  "key_points": [
+    "① [본문에 실제로 나온 변경 내용 1] — [본문 근거 간단 설명]",
+    "② [본문에 실제로 나온 변경 내용 2] — [본문 근거 간단 설명]",
+    "③ [본문에 실제로 나온 변경 내용 3, 있는 경우]"
+  ],
+  "industry_impact": "식품 제조·판매·수입 업체 관점에서 본문 내용이 실무에 미치는 영향 1~2문장",
+  "related_laws": ["본문에 「」로 인용된 관련 법령명만, 없으면 빈 배열"]
+}}
+
+조건:
+- key_points·industry_impact는 반드시 본문에 실제로 언급된 내용만 사용
+- 의견제출 마감일이 본문에 있으면 industry_impact 또는 key_points에 반드시 포함
+- related_laws는 본문에 「」로 실제 인용된 법령명만 (URL 없이 이름만, 지어내지 말 것)
+- 한국어로만 작성"""
+    else:
+        # body_text를 못 가져온 항목(예: 상세페이지 접근 실패)에 한해서만 제목 기반 폴백 사용
+        prompt = f"""당신은 식품산업 법령 전문 분석가입니다.
+아래 식품 법령 개정 정보는 제목만 확인 가능합니다(본문 수집 실패). 제목에서 합리적으로 유추 가능한 범위에서만 분석해 JSON으로 반환하세요.
 
 제목: {title}
 출처: {source}
@@ -41,22 +78,13 @@ def summarize_item(client, item: dict) -> dict:
 
 다음 형식으로만 반환 (다른 텍스트 없이 JSON만):
 {{
-  "key_points": [
-    "① [변경 내용 핵심 1] — [간단 설명]",
-    "② [변경 내용 핵심 2] — [간단 설명]",
-    "③ [변경 내용 핵심 3] — [간단 설명]"
-  ],
-  "industry_impact": "식품 업계에 미치는 영향을 1~2문장으로 설명",
-  "related_laws": [
-    {{"title": "관련 법령명 1", "url": "https://www.law.go.kr/법령/법령명"}},
-    {{"title": "관련 법령명 2", "url": "https://www.law.go.kr/법령/법령명"}}
-  ]
+  "key_points": ["① 제목에서 유추 가능한 변경 사항 (제목 기반 추정임을 감안)"],
+  "industry_impact": "식품 업계에 미치는 영향을 1문장으로 (제목 기반 추정)",
+  "related_laws": []
 }}
 
 조건:
-- key_points는 제목에서 유추 가능한 구체적 변경 사항 3개 (없으면 2개)
-- industry_impact는 식품 제조·판매·수입 업체 관점에서 실질적 영향
-- related_laws는 제목에서 유추된 관련 법령 1~3개, URL은 법제처 또는 식약처
+- 본문을 확인하지 못했으므로 과도하게 구체적인 내용은 만들지 말 것
 - 한국어로만 작성"""
 
     text = ""
@@ -67,13 +95,16 @@ def summarize_item(client, item: dict) -> dict:
             text = text.split("```json")[1].split("```")[0].strip()
         elif "```" in text:
             text = text.split("```")[1].split("```")[0].strip()
-        return json.loads(text)
+        result = json.loads(text)
+        result["summarized_with_body"] = bool(body_text)
+        return result
     except Exception as e:
         print(f"    파싱 오류 ({e}): {text[:100]}")
         return {
             "key_points": [],
             "industry_impact": "",
             "related_laws": [],
+            "summarized_with_body": False,
         }
 
 
@@ -111,7 +142,12 @@ def summarize_week(client, week: dict) -> str:
 
 
 def needs_update(item: dict) -> bool:
-    return not item.get("key_points") or len(item.get("key_points", [])) == 0
+    if not item.get("key_points"):
+        return True
+    # body_text가 새로 백필됐는데 아직 제목만으로 요약된 상태면 근거 있는 요약으로 재생성
+    if item.get("body_text") and not item.get("summarized_with_body"):
+        return True
+    return False
 
 
 def main():
@@ -160,6 +196,7 @@ def main():
             item["key_points"] = result.get("key_points", [])
             item["industry_impact"] = result.get("industry_impact", "")
             item["related_laws"] = result.get("related_laws", [])
+            item["summarized_with_body"] = result.get("summarized_with_body", False)
             week_updated = True
             updated += 1
             print("완료")

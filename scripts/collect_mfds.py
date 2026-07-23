@@ -12,7 +12,9 @@
 """
 
 import os
+import re
 import sys
+import time
 import requests
 from bs4 import BeautifulSoup
 from datetime import datetime, timedelta
@@ -20,6 +22,35 @@ from urllib.parse import urljoin
 
 sys.path.insert(0, os.path.dirname(__file__))
 from law_type_utils import detect_law_type
+
+BODY_TEXT_MAX_CHARS = 3000
+
+
+def fetch_detail_body(url: str) -> str:
+    """상세페이지의 실제 공고 본문("개정이유 및 주요내용", 의견제출 마감 등)을 추출한다.
+
+    지금까지는 목록 페이지의 제목만 가지고 Gemini에게 "개정 내용을 분석해달라"고
+    시켰는데, 이러면 모델이 제목만 보고 그럴듯한 내용을 지어낼 수밖에 없다.
+    상세페이지 본문(.bv_cont)에는 실제 개정이유·주요내용·의견제출 마감일 등이
+    전부 나와 있어서, 이걸 긁어 요약 프롬프트의 근거로 넘기면 훨씬 정확해진다.
+    """
+    try:
+        r = requests.get(url, headers=HEADERS, timeout=15)
+        r.raise_for_status()
+        r.encoding = "utf-8"
+        soup = BeautifulSoup(r.text, "html.parser")
+        cont = soup.select_one(".bv_cont") or soup.select_one(".bv_contents")
+        if not cont:
+            return ""
+        # <p> 단위로 합쳐야 문단이 유지된다 — get_text(separator="\n")은 <span>마다
+        # 줄바꿈을 넣어서 한 문장이 수십 줄로 쪼개짐
+        paragraphs = [p.get_text(" ", strip=True) for p in cont.find_all("p")]
+        paragraphs = [re.sub(r"\s{2,}", " ", p) for p in paragraphs if p]
+        text = "\n".join(paragraphs) if paragraphs else cont.get_text(" ", strip=True)
+        return text[:BODY_TEXT_MAX_CHARS]
+    except Exception as e:
+        print(f"    상세본문 수집 실패 [{url}]: {e}")
+        return ""
 
 BOARDS = [
     {"path": "m_203", "default_status": "시행", "default_law_type": None},
@@ -72,6 +103,9 @@ def collect_board(board, cutoff):
             href = title_el.get("href", "")
             item_url = urljoin(url, href)
 
+            body_text = fetch_detail_body(item_url)
+            time.sleep(0.3)  # 상세페이지 연속 요청 예의상 딜레이
+
             items.append({
                 "title": title,
                 "source": "식약처",
@@ -82,6 +116,7 @@ def collect_board(board, cutoff):
                 "industry_impact": "",
                 "law_type": board["default_law_type"] or detect_law_type(title),
                 "is_new": True,
+                "body_text": body_text,
             })
 
         print(f"[식약처:{board['path']}] {len(items)}건 수집")
