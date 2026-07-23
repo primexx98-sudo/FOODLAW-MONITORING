@@ -189,6 +189,11 @@
       display:inline-flex;align-items:center;gap:4px;
     }
     .law-btn:hover{background:var(--surface);color:var(--text);}
+    .law-tag{
+      background:var(--surface2);border:1px solid var(--border2);color:var(--sub);
+      padding:4px 10px;border-radius:4px;font-size:0.74rem;
+      display:inline-flex;align-items:center;gap:4px;
+    }
 
     .no-items{color:var(--sub);font-size:0.86rem;padding:16px 4px;}
 
@@ -222,7 +227,7 @@
 </header>
 
 <div class="toolbar">
-  <span class="toolbar-info">총 <b>29</b>주차 수록 · 누적 <b>35</b>건</span>
+  <span class="toolbar-info">총 <b>29</b>주차 수록 · 누적 <b>36</b>건</span>
   <button class="btn-tool" onclick="expandAll()">모두 펼치기</button>
   <button class="btn-tool" onclick="collapseAll()">이전 주 접기</button>
   <button class="btn-tool btn-copy-all" onclick="copyAllArchive(this)">📋 전체 아카이브 복사</button>
@@ -244,7 +249,7 @@
 <div class="kpi-row">
   <div class="kpi">
     <div class="kpi-label">이번 주 수집</div>
-    <div class="kpi-val">2<span class="kpi-unit">건</span></div>
+    <div class="kpi-val">3<span class="kpi-unit">건</span></div>
   </div>
   <div class="kpi blue">
     <div class="kpi-label">시행 확정</div>
@@ -252,7 +257,7 @@
   </div>
   <div class="kpi orange">
     <div class="kpi-label">예고·검토</div>
-    <div class="kpi-val">2<span class="kpi-unit">건</span></div>
+    <div class="kpi-val">3<span class="kpi-unit">건</span></div>
   </div>
   <div class="kpi red">
     <div class="kpi-label">누적 주차</div>
@@ -270,21 +275,38 @@
     </div>
     <div class="week-right">
       <span class='badge-latest'>최신</span>
-      <span class="week-count">2건</span>
+      <span class="week-count">3건</span>
       <span class="week-arrow">▴</span>
     </div>
   </button>
   <div class="week-content open">
-    
+    <div class='summary-box'><div class='summary-title'>✦ 이번 주 통합 요약 (2026.07.20)</div><p class='summary-text'>2026-07-20 ~ 2026-07-26 기간 식품 법령 개정 3건 수집. 식약처 3건 · 식품안전나라 0건.</p><button class="btn-copy" onclick="copyText(this, '2026-07-20 ~ 2026-07-26 기간 식품 법령 개정 3건 수집. 식약처 3건 · 식품안전나라 0건.')">요약 복사</button></div>
     <div class="groups-wrap">
       
 <div class="group-section">
   <div class="group-header">
     <span class="group-dot dot-notice"></span>
     <span class="group-label">확정예고 입법 — 미래발령, 지속 추적</span>
-    <span class="group-count">2건</span>
+    <span class="group-count">3건</span>
   </div>
   
+<div class="law-item " data-source="식약처" data-status="예고">
+  <div class="law-header" onclick="toggleItem(this)">
+    <div class="law-tags">
+      <span class="tag status-notice">예고</span>
+      <span class="tag tag-green">식약처</span>
+      <span class="tag tag-official">공식</span>
+      
+      <span class="badge-new">NEW</span>
+    </div>
+    <div class="law-title">「벨기에산 식용란 및 알가공품 수입위생요건」 제정고시(안) 행정예고(식품의약품안전처 공고 제2026-359호</div>
+    <div class="law-meta">
+      <span class="law-date">📅 2026-07-23 예고</span>
+      
+    </div>
+  </div>
+  
+</div>
 <div class="law-item " data-source="식약처" data-status="예고">
   <div class="law-header" onclick="toggleItem(this)">
     <div class="law-tags">
@@ -405,7 +427,7 @@
 </ul><div class="impact-box">💡 <strong>업계 영향</strong> — 식품 원료 사용 업체는 기준이 변경된 성분 포함 제품을 즉시 확인하고, 필요 시 원료 교체 또는 배합표 수정 계획 수립 필요</div>
     <div class="law-footer">
       <a class="btn-original" href="https://www.mfds.go.kr/brd/m_209/list.do" target="_blank" rel="noopener">원문 바로가기</a>
-      <a class="law-btn" href="https://www.law.go.kr/법령/식품위생법" target="_blank" rel="noopener">📄 식품위생법 제7조</a><a class="law-btn" href="https://www.law.go.kr/행정규칙/식품의기준및규격" target="_blank" rel="noopener">📄 식품의 기준 및 규격</a>
+      <span class="law-tag">📄 식품위생법 제7조</span><span class="law-tag">📄 식품의 기준 및 규격</span>
     </div></div>
 </div>
 <div class="law-item expandable" data-source="식약처" data-status="예고">
@@ -429,7 +451,7 @@
 </ul><div class="impact-box">💡 <strong>업계 영향</strong> — 농산물·축산물 원료 사용 업체는 해당 원료의 잔류물질 기준 변경 여부 확인 후 원료 공급업체와 사전 협의 필요; 기준 초과 시 원료 반품 비용 및 일정 리스크 발생 가능</div>
     <div class="law-footer">
       <a class="btn-original" href="https://www.mfds.go.kr/brd/m_209/list.do" target="_blank" rel="noopener">원문 바로가기</a>
-      <a class="law-btn" href="https://www.law.go.kr/법령/식품위생법" target="_blank" rel="noopener">📄 식품위생법 제7조</a><a class="law-btn" href="https://www.law.go.kr/행정규칙/식품의기준및규격" target="_blank" rel="noopener">📄 식품의 기준 및 규격</a>
+      <span class="law-tag">📄 식품위생법 제7조</span><span class="law-tag">📄 식품의 기준 및 규격</span>
     </div></div>
 </div>
 </div>
@@ -577,7 +599,7 @@
 </ul><div class="impact-box">💡 <strong>업계 영향</strong> — HACCP 인증업소는 정기조사 준비를 상시 유지해야 하며, 위반 이력이 없는 우수업소는 면제 혜택 가능; 조사 결과 기록 관리 체계 재점검 권장</div>
     <div class="law-footer">
       <a class="btn-original" href="https://www.mfds.go.kr/brd/m_203/list.do" target="_blank" rel="noopener">원문 바로가기</a>
-      <a class="law-btn" href="https://www.law.go.kr/법령/식품위생법" target="_blank" rel="noopener">📄 식품위생법 제48조</a><a class="law-btn" href="https://www.law.go.kr/법령/식품위생법" target="_blank" rel="noopener">📄 식품위생법 제48조의3</a>
+      <span class="law-tag">📄 식품위생법 제48조</span><span class="law-tag">📄 식품위생법 제48조의3</span>
     </div></div>
 </div>
 </div>
@@ -629,7 +651,7 @@
 </ul><div class="impact-box">💡 <strong>업계 영향</strong> — 건강기능식품 제조·판매업체는 품목제조신고 시 영양성분 정보 제출 의무 항목을 즉시 확인 필요. 기존 신고서식과 제출 서류 변경 여부를 반드시 확인하고 신규 서식으로 전환 권장</div>
     <div class="law-footer">
       <a class="btn-original" href="https://www.mfds.go.kr/brd/m_203/list.do" target="_blank" rel="noopener">원문 바로가기</a>
-      <a class="law-btn" href="https://www.law.go.kr/법령/건강기능식품에관한법률" target="_blank" rel="noopener">📄 건강기능식품에 관한 법률</a><a class="law-btn" href="https://www.law.go.kr/법령/건강기능식품에관한법률시행규칙" target="_blank" rel="noopener">📄 건강기능식품에 관한 법률 시행규칙</a><a class="law-btn" href="https://www.law.go.kr/lsSc.do?query=건강기능식품" target="_blank" rel="noopener">📄 건강기능식품에 관한 법률 (법제처)</a>
+      <span class="law-tag">📄 건강기능식품에 관한 법률</span><span class="law-tag">📄 건강기능식품에 관한 법률 시행규칙</span><span class="law-tag">📄 건강기능식품에 관한 법률 (법제처)</span>
     </div></div>
 </div>
 </div>
@@ -680,7 +702,7 @@
 </ul><div class="impact-box">💡 <strong>업계 영향</strong> — 대형 집단급식소 및 온라인 식품 판매업체는 이력 추적 시스템 도입 및 내부 위생관리 기준을 즉시 상향 조정 필요</div>
     <div class="law-footer">
       <a class="btn-original" href="https://www.mfds.go.kr/brd/m_203/list.do" target="_blank" rel="noopener">원문 바로가기</a>
-      <a class="law-btn" href="https://www.law.go.kr/법령/식품위생법" target="_blank" rel="noopener">📄 식품위생법</a>
+      <span class="law-tag">📄 식품위생법</span>
     </div></div>
 </div>
 <div class="law-item expandable" data-source="식약처" data-status="시행">
@@ -704,7 +726,7 @@
 </ul><div class="impact-box">💡 <strong>업계 영향</strong> — 온라인 플랫폼 식품 판매업자는 판매 제품 이력 추적 체계 구축 및 소비자 피해 대응 절차 매뉴얼 수립 필요</div>
     <div class="law-footer">
       <a class="btn-original" href="https://www.mfds.go.kr/brd/m_203/list.do" target="_blank" rel="noopener">원문 바로가기</a>
-      <a class="law-btn" href="https://www.law.go.kr/법령/식품위생법" target="_blank" rel="noopener">📄 식품위생법</a>
+      <span class="law-tag">📄 식품위생법</span>
     </div></div>
 </div>
 <div class="law-item expandable" data-source="식약처" data-status="시행">
@@ -728,7 +750,7 @@
 </ul><div class="impact-box">💡 <strong>업계 영향</strong> — HACCP 미인증 식품 제조업체는 의무화 일정 및 해당 여부 즉시 확인 권장; 영업 등록제 전환 업체는 전환 절차 및 기한 확인 필수</div>
     <div class="law-footer">
       <a class="btn-original" href="https://www.mfds.go.kr/brd/m_203/list.do" target="_blank" rel="noopener">원문 바로가기</a>
-      <a class="law-btn" href="https://www.law.go.kr/법령/식품위생법" target="_blank" rel="noopener">📄 식품위생법</a><a class="law-btn" href="https://www.law.go.kr/법령/식품위생법시행규칙" target="_blank" rel="noopener">📄 식품위생법 시행규칙</a>
+      <span class="law-tag">📄 식품위생법</span><span class="law-tag">📄 식품위생법 시행규칙</span>
     </div></div>
 </div>
 <div class="law-item expandable" data-source="식약처" data-status="시행">
@@ -752,7 +774,7 @@
 </ul><div class="impact-box">💡 <strong>업계 영향</strong> — 식품 제조·유통업체는 위해식품 발생 시 신속 대응 체계(내부 리콜 SOP) 구축 필요; 정보 공개 기한 단축으로 조기 대응이 더욱 중요해짐</div>
     <div class="law-footer">
       <a class="btn-original" href="https://www.mfds.go.kr/brd/m_203/list.do" target="_blank" rel="noopener">원문 바로가기</a>
-      <a class="law-btn" href="https://www.law.go.kr/법령/식품안전기본법" target="_blank" rel="noopener">📄 식품안전기본법</a><a class="law-btn" href="https://www.law.go.kr/법령/식품안전기본법시행령" target="_blank" rel="noopener">📄 식품안전기본법 시행령</a>
+      <span class="law-tag">📄 식품안전기본법</span><span class="law-tag">📄 식품안전기본법 시행령</span>
     </div></div>
 </div>
 </div>
@@ -945,7 +967,7 @@
 </ul><div class="impact-box">💡 <strong>업계 영향</strong> — 식품 제조·판매업 위생관리책임자는 연간 교육 계획에 의무 교육 일정이 포함되어 있는지 즉시 확인; 미이수 시 행정처분 대상. 교육기관 지정·운영 업체는 지정 요건 충족 여부 재검토 필요</div>
     <div class="law-footer">
       <a class="btn-original" href="https://www.law.go.kr/lsSc.do?query=식품위생법" target="_blank" rel="noopener">원문 바로가기</a>
-      <a class="law-btn" href="https://www.law.go.kr/법령/식품위생법" target="_blank" rel="noopener">📄 식품위생법 제41조</a>
+      <span class="law-tag">📄 식품위생법 제41조</span>
     </div></div>
 </div>
 </div>
@@ -1190,7 +1212,7 @@
 </ul><div class="impact-box">💡 <strong>업계 영향</strong> — 기 공포된 식품안전기본법 개정 내용 시행 시작; 위해식품 회수 및 정보공개 관련 내부 절차 점검 권장</div>
     <div class="law-footer">
       <a class="btn-original" href="https://www.law.go.kr/lsSc.do?query=식품안전기본법" target="_blank" rel="noopener">원문 바로가기</a>
-      <a class="law-btn" href="https://www.law.go.kr/법령/식품안전기본법" target="_blank" rel="noopener">📄 식품안전기본법</a>
+      <span class="law-tag">📄 식품안전기본법</span>
     </div></div>
 </div>
 <div class="law-item expandable" data-source="법제처" data-status="시행">
@@ -1213,7 +1235,7 @@
 </ul><div class="impact-box">💡 <strong>업계 영향</strong> — 기 공포된 식품안전기본법 개정 내용 시행 시작; 위해식품 회수 및 정보공개 관련 내부 절차 점검 권장</div>
     <div class="law-footer">
       <a class="btn-original" href="https://www.law.go.kr/lsSc.do?query=식품안전기본법" target="_blank" rel="noopener">원문 바로가기</a>
-      <a class="law-btn" href="https://www.law.go.kr/법령/식품안전기본법" target="_blank" rel="noopener">📄 식품안전기본법</a>
+      <span class="law-tag">📄 식품안전기본법</span>
     </div></div>
 </div>
 </div>
@@ -1245,7 +1267,7 @@
 </ul><div class="impact-box">💡 <strong>업계 영향</strong> — 축산물 가공·판매 업체는 냉장·냉동 설비 기준 충족 여부 사전 점검 필요; 시행규칙·시행령 2건 동시 예고로 함께 검토 권장</div>
     <div class="law-footer">
       <a class="btn-original" href="https://www.mfds.go.kr/brd/m_209/list.do" target="_blank" rel="noopener">원문 바로가기</a>
-      <a class="law-btn" href="https://www.law.go.kr/법령/축산물위생관리법" target="_blank" rel="noopener">📄 축산물 위생관리법</a><a class="law-btn" href="https://www.law.go.kr/법령/축산물위생관리법시행규칙" target="_blank" rel="noopener">📄 축산물 위생관리법 시행규칙</a>
+      <span class="law-tag">📄 축산물 위생관리법</span><span class="law-tag">📄 축산물 위생관리법 시행규칙</span>
     </div></div>
 </div>
 <div class="law-item expandable" data-source="식약처" data-status="예고">
@@ -1269,7 +1291,7 @@
 </ul><div class="impact-box">💡 <strong>업계 영향</strong> — 축산물 제조·가공업 등록 업체는 허가 유지 요건 변경 사항 확인 필수; 반복 위반 시 처벌 강화 예정</div>
     <div class="law-footer">
       <a class="btn-original" href="https://www.mfds.go.kr/brd/m_209/list.do" target="_blank" rel="noopener">원문 바로가기</a>
-      <a class="law-btn" href="https://www.law.go.kr/법령/축산물위생관리법" target="_blank" rel="noopener">📄 축산물 위생관리법</a><a class="law-btn" href="https://www.law.go.kr/법령/축산물위생관리법시행령" target="_blank" rel="noopener">📄 축산물 위생관리법 시행령</a>
+      <span class="law-tag">📄 축산물 위생관리법</span><span class="law-tag">📄 축산물 위생관리법 시행령</span>
     </div></div>
 </div>
 </div>
@@ -1678,7 +1700,7 @@
 </main>
 
 <textarea id="archive-full-text" style="display:none">[2026년 30주차 2026-07-20~2026-07-26]
-2026-07-20 ~ 2026-07-26 기간 식품 법령 개정 2건 수집. 식약처 2건 · 식품안전나라 0건.
+2026-07-20 ~ 2026-07-26 기간 식품 법령 개정 3건 수집. 식약처 3건 · 식품안전나라 0건.
 
 [2026년 27주차 2026-06-29~2026-06-30]
 이번 주(6.29~6.30) 가장 주목할 사항은 「식품의 기준 및 규격」 개정고시(안) 행정예고 2건(공고 310호·311호)이 동시에 나온 것입니다. 잔류농약 기준 강화(310호)와 신규 원료 기준 설정 및 오염물질 기준 강화(311호)를 각각 담고 있어, 식품 제조업체는 사용 원료의 기준 변경 여부를 즉시 확인해야 합니다. 두 공고 모두 의견 제출 기간 중이므로 업계 입장을 검토 후 적극 제출하는 것을 권장합니다.
@@ -1735,7 +1757,7 @@
 2026-01-12 ~ 2026-01-18 식품 법령 2건. 시행 0건 / 예고 2건.</textarea>
 
 <footer class="site-footer">
-  식품 법령 개정 모니터 · GitHub Actions 자동 수집 · 최종 업데이트 2026.07.22
+  식품 법령 개정 모니터 · GitHub Actions 자동 수집 · 최종 업데이트 2026.07.23
 </footer>
 
 <script>
