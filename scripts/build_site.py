@@ -330,9 +330,9 @@ def build():
     .hbadge.green{{background:#2d6a4f;color:#b7e4c7;border-color:#52b788;}}
     .theme-toggle{{
       background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.2);
-      color:#b7e4c7;width:26px;height:26px;border-radius:50%;cursor:pointer;
-      display:inline-flex;align-items:center;justify-content:center;font-size:0.85rem;
-      flex-shrink:0;line-height:1;
+      color:#b7e4c7;height:26px;padding:0 10px;border-radius:13px;cursor:pointer;
+      display:inline-flex;align-items:center;gap:5px;justify-content:center;
+      font-size:0.72rem;font-weight:600;flex-shrink:0;line-height:1;white-space:nowrap;
     }}
     .theme-toggle:hover{{background:rgba(255,255,255,.15);}}
 
@@ -532,7 +532,7 @@ def build():
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:#52b788"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
         식품 법령 개정 모니터
       </h1>
-      <button class="theme-toggle" onclick="toggleTheme()" id="themeToggleBtn" title="라이트/다크 모드 전환">🌙</button>
+      <button class="theme-toggle" onclick="toggleTheme()" id="themeToggleBtn" title="라이트/다크 모드 전환"><span id="themeToggleIcon">🌙</span><span id="themeToggleLabel">라이트 모드</span></button>
     </div>
     <p>식약처 연동 · {years[-1] if years else ""}~{years[0] if years else ""}년 누적 아카이브</p>
   </div>
@@ -592,8 +592,10 @@ def build():
 <script>
 function applyThemeIcon() {{
   const isLight = document.documentElement.getAttribute('data-theme') === 'light';
-  const btn = document.getElementById('themeToggleBtn');
-  if (btn) btn.textContent = isLight ? '☀️' : '🌙';
+  const icon = document.getElementById('themeToggleIcon');
+  const label = document.getElementById('themeToggleLabel');
+  if (icon) icon.textContent = isLight ? '☀️' : '🌙';
+  if (label) label.textContent = isLight ? '다크 모드' : '라이트 모드';
 }}
 function toggleTheme() {{
   const cur = document.documentElement.getAttribute('data-theme') === 'light' ? 'light' : 'dark';
