@@ -10,6 +10,7 @@ API 키는 https://aistudio.google.com/apikey 에서 무료로 발급받는다.
 
 import json
 import os
+import re
 import sys
 import time
 
@@ -17,10 +18,27 @@ REPO_ROOT = os.path.join(os.path.dirname(__file__), "..")
 ARCHIVE_PATH = os.path.join(REPO_ROOT, "data", "archive.json")
 
 MODEL = "gemini-flash-latest"
+# 2026-07-23: gemini-flash-latest(=gemini-3.6-flash)는 무료 티어가 분당 5회로
+# 빡빡해서, 호출 간격을 13초로 늘리고 429는 재시도 힌트(retryDelay)만큼 기다렸다가
+# 한 번 더 시도한다.
+CALL_INTERVAL_SEC = 13
 
 
 def call_gemini(client, prompt: str) -> str:
-    resp = client.models.generate_content(model=MODEL, contents=prompt)
+    try:
+        resp = client.models.generate_content(model=MODEL, contents=prompt)
+    except Exception as e:
+        msg = str(e)
+        if "RESOURCE_EXHAUSTED" in msg or "429" in msg:
+            wait = 30
+            m = re.search(r"retryDelay['\"]?:\s*['\"]?(\d+)", msg)
+            if m:
+                wait = int(m.group(1)) + 2
+            print(f"    429 재시도 대기 {wait}초...")
+            time.sleep(wait)
+            resp = client.models.generate_content(model=MODEL, contents=prompt)
+        else:
+            raise
     return resp.text.strip()
 
 
@@ -200,13 +218,13 @@ def main():
             week_updated = True
             updated += 1
             print("완료")
-            time.sleep(1.0)  # 무료 티어 분당 호출 한도 여유
+            time.sleep(CALL_INTERVAL_SEC)
 
         # 주간 요약이 없거나 항목 요약 후 재생성
         if week_updated or not week.get("weekly_summary"):
             print(f"  [{label}] 주간 요약 생성 중...")
             week["weekly_summary"] = summarize_week(client, week)
-            time.sleep(1.0)
+            time.sleep(CALL_INTERVAL_SEC)
 
     import datetime
     archive["last_updated"] = datetime.datetime.now().isoformat()
