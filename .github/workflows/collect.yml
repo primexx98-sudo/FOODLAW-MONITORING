@@ -2,7 +2,7 @@ name: 주간 식품 법령 수집
 
 on:
   schedule:
-    - cron: '0 0 * * 1'  # 매주 월요일 09:00 KST (= UTC 00:00)
+    - cron: '27 0 * * 1'  # 매주 월요일 09:27 KST (= UTC 00:27, 정각 지연 회피)
   workflow_dispatch:       # 수동 실행 버튼도 제공
 
 permissions:
