@@ -11,9 +11,7 @@ OUTPUT_PATH = os.path.join(REPO_ROOT, "docs", "index.html")
 CIRCLES = "①②③④⑤⑥⑦⑧⑨⑩"
 
 SOURCE_COLORS = {
-    "법제처": "tag-blue",
     "식약처": "tag-green",
-    "식품안전나라": "tag-orange",
 }
 STATUS_COLORS = {
     "시행": "status-enforce",
@@ -160,7 +158,7 @@ def render_week(week, index):
     summary_date = start.replace("-", ".")[:10] if start else ""
 
     return f"""
-<div class="week-section">
+<div class="week-section" data-year="{esc(year)}">
   <button class="accordion-btn {btn_open}" onclick="toggleWeek(this)">
     <div class="week-left">
       <span class="week-num">{esc(year)}년 {esc(week_num)}주차</span>
@@ -195,6 +193,13 @@ def build():
         )
         total_weeks = archive.get("total_weeks", len(weeks))
         last_updated = archive.get("last_updated", "")
+
+    years = sorted({w.get("year") for w in weeks if w.get("year")}, reverse=True)
+    default_year = years[0] if years else ""
+    year_btns_html = "".join(
+        f'<button class="filter-btn{" active" if y == default_year else ""}" onclick="setYear(this,\'{y}\')">{y}년</button>'
+        for y in years
+    )
 
     latest = weeks[0] if weeks else {}
     lc = latest.get("counts", {})
@@ -299,6 +304,7 @@ def build():
       background:var(--surface);border:1px solid var(--border);
       border-radius:8px;margin-bottom:10px;overflow:hidden;
     }}
+    .week-section.hidden{{display:none;}}
     .accordion-btn{{
       width:100%;background:none;border:none;padding:12px 18px;
       display:flex;justify-content:space-between;align-items:center;cursor:pointer;color:var(--text);
@@ -436,13 +442,11 @@ def build():
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:#52b788"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
       식품 법령 개정 모니터
     </h1>
-    <p>고메베이글 개발팀 · 식약처·법제처 연동 · 주간 누적 아카이브</p>
+    <p>고메베이글 개발팀 · 식약처 연동 · {years[-1] if years else ""}~{years[0] if years else ""}년 누적 아카이브</p>
   </div>
   <div class="header-right">
     <span class="hbadge">식약처</span>
-    <span class="hbadge">법제처</span>
-    <span class="hbadge">식품안전나라</span>
-    <span class="hbadge green">총 {total_weeks}주차 수록</span>
+    <span class="hbadge green">총 {total_weeks}주차 · {all_items}건 수록</span>
   </div>
 </header>
 
@@ -454,11 +458,9 @@ def build():
 </div>
 
 <div class="filter-bar">
-  <span class="filter-label">출처</span>
-  <button class="filter-btn active" onclick="setSource(this,'all')">전체</button>
-  <button class="filter-btn" onclick="setSource(this,'식약처')">식약처</button>
-  <button class="filter-btn" onclick="setSource(this,'법제처')">법제처</button>
-  <button class="filter-btn" onclick="setSource(this,'식품안전나라')">식품안전나라</button>
+  <span class="filter-label">연도</span>
+  <button class="filter-btn" onclick="setYear(this,'all')">전체</button>
+  {year_btns_html}
   <div class="filter-sep"></div>
   <span class="filter-label">상태</span>
   <button class="filter-btn active" onclick="setStatus(this,'all')">전체</button>
@@ -519,22 +521,24 @@ function collapseAll() {{
   }});
 }}
 
-let activeSrc='all', activeSt='all';
+let activeYear='{default_year}', activeSt='all';
 function applyFilter() {{
+  document.querySelectorAll('.week-section').forEach(w => {{
+    w.classList.toggle('hidden', activeYear!=='all' && w.dataset.year!==activeYear);
+  }});
   document.querySelectorAll('.law-item').forEach(it => {{
-    const ok = (activeSrc==='all'||it.dataset.source===activeSrc) &&
-               (activeSt==='all'||it.dataset.status===activeSt);
-    it.classList.toggle('hidden',!ok);
+    it.classList.toggle('hidden', activeSt!=='all' && it.dataset.status!==activeSt);
   }});
 }}
-function setSource(btn, val) {{
-  document.querySelectorAll('.filter-btn[onclick*="setSource"]').forEach(b=>b.classList.remove('active'));
-  btn.classList.add('active'); activeSrc=val; applyFilter();
+function setYear(btn, val) {{
+  document.querySelectorAll('.filter-btn[onclick*="setYear"]').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active'); activeYear=val; applyFilter();
 }}
 function setStatus(btn, val) {{
   document.querySelectorAll('.filter-btn[onclick*="setStatus"]').forEach(b=>b.classList.remove('active'));
   btn.classList.add('active'); activeSt=val; applyFilter();
 }}
+applyFilter();
 
 async function copyText(btn, text) {{
   try {{

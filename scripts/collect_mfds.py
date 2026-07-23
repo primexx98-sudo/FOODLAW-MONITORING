@@ -75,49 +75,63 @@ def parse_date(text):
         return None
 
 
+def fetch_list_page(board, page=1):
+    """게시판 목록 1페이지 분(보통 10건)을 파싱해 반환. body_text 없이 title/date/url만."""
+    url = f"https://www.mfds.go.kr/brd/{board['path']}/list.do"
+    r = requests.get(
+        url,
+        params={"data_stts_gubun": FOOD_CATEGORY, "page": page},
+        headers=HEADERS,
+        timeout=15,
+    )
+    r.raise_for_status()
+    r.encoding = "utf-8"
+
+    soup = BeautifulSoup(r.text, "html.parser")
+    rows = soup.select(".bbs_list01 li")
+
+    parsed = []
+    for row in rows:
+        title_el = row.select_one("a.title")
+        if not title_el:
+            continue
+        title = title_el.get_text(strip=True)
+        if not title:
+            continue
+
+        date_el = row.select_one(".right_column")
+        date_text = date_el.get_text(strip=True) if date_el else ""
+        date_obj = parse_date(date_text)
+
+        href = title_el.get("href", "")
+        item_url = urljoin(url, href)
+
+        parsed.append({
+            "title": title,
+            "source": "식약처",
+            "status": board["default_status"],
+            "date": date_obj.strftime("%Y-%m-%d") if date_obj else date_text,
+            "date_obj": date_obj,
+            "url": item_url,
+            "key_points": [],
+            "industry_impact": "",
+            "law_type": board["default_law_type"] or detect_law_type(title),
+            "is_new": True,
+        })
+    return parsed
+
+
 def collect_board(board, cutoff):
     items = []
-    url = f"https://www.mfds.go.kr/brd/{board['path']}/list.do"
     try:
-        r = requests.get(url, params={"data_stts_gubun": FOOD_CATEGORY}, headers=HEADERS, timeout=15)
-        r.raise_for_status()
-        r.encoding = "utf-8"
+        parsed = [it for it in fetch_list_page(board, page=1)
+                  if not (it["date_obj"] and it["date_obj"] < cutoff)]
 
-        soup = BeautifulSoup(r.text, "html.parser")
-        rows = soup.select(".bbs_list01 li")
-
-        for row in rows:
-            title_el = row.select_one("a.title")
-            if not title_el:
-                continue
-            title = title_el.get_text(strip=True)
-            if not title:
-                continue
-
-            date_el = row.select_one(".right_column")
-            date_text = date_el.get_text(strip=True) if date_el else ""
-            date_obj = parse_date(date_text)
-            if date_obj and date_obj < cutoff:
-                continue
-
-            href = title_el.get("href", "")
-            item_url = urljoin(url, href)
-
-            body_text = fetch_detail_body(item_url)
+        for it in parsed:
+            it.pop("date_obj", None)
+            it["body_text"] = fetch_detail_body(it["url"])
             time.sleep(0.3)  # 상세페이지 연속 요청 예의상 딜레이
-
-            items.append({
-                "title": title,
-                "source": "식약처",
-                "status": board["default_status"],
-                "date": date_obj.strftime("%Y-%m-%d") if date_obj else date_text,
-                "url": item_url,
-                "key_points": [],
-                "industry_impact": "",
-                "law_type": board["default_law_type"] or detect_law_type(title),
-                "is_new": True,
-                "body_text": body_text,
-            })
+            items.append(it)
 
         print(f"[식약처:{board['path']}] {len(items)}건 수집")
 

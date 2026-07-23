@@ -8,6 +8,7 @@ API 키는 https://aistudio.google.com/apikey 에서 무료로 발급받는다.
   python scripts/summarize_items.py
 """
 
+import datetime
 import json
 import os
 import re
@@ -188,45 +189,72 @@ def main():
         archive = json.load(f)
 
     total_items = sum(len(w.get("items", [])) for w in archive["weeks"])
-    needs = sum(
-        sum(1 for it in w.get("items", []) if needs_update(it))
-        for w in archive["weeks"]
+
+    # 2026-07-23: 2023~2026년 과거 데이터 198건을 한 번에 백필하면서 무료 티어
+    # 일일 호출 한도(실측 20회)를 훨씬 초과하는 문제가 생김. 사용자 결정:
+    # "가장 최근 것부터 요약하고, 그 다음 과거 자료는 하루 10건씩" —
+    # 당해년도(CURRENT_YEAR) 항목은 무제한 처리(원래도 주당 2~4건 수준이라
+    # 한도에 안 걸림), 그 이전 항목은 하루 HISTORICAL_ITEM_CAP건만 처리.
+    # 전체 호출(항목 요약 + 주간 요약 합산)은 DAILY_TOTAL_CAP으로 다시 한 번
+    # 안전장치를 둔다.
+    CURRENT_YEAR = str(datetime.datetime.now().year)
+    HISTORICAL_ITEM_CAP = 10
+    DAILY_TOTAL_CAP = 18
+
+    all_pairs = [
+        (week, item)
+        for week in archive["weeks"]
+        for item in week.get("items", [])
+        if needs_update(item)
+    ]
+    all_pairs.sort(key=lambda p: p[1].get("date", ""), reverse=True)
+
+    recent_pairs = [p for p in all_pairs if p[1].get("date", "").startswith(CURRENT_YEAR)]
+    historical_pairs = [p for p in all_pairs if not p[1].get("date", "").startswith(CURRENT_YEAR)]
+    to_process = recent_pairs + historical_pairs[:HISTORICAL_ITEM_CAP]
+
+    print(
+        f"전체 {total_items}건 중 요약 필요 {len(all_pairs)}건 — "
+        f"오늘 처리 대상: {CURRENT_YEAR}년 {len(recent_pairs)}건(전부) "
+        f"+ 과거 {min(len(historical_pairs), HISTORICAL_ITEM_CAP)}건"
+        f"(과거 잔여 {max(len(historical_pairs) - HISTORICAL_ITEM_CAP, 0)}건은 다음 실행에서)"
     )
-    print(f"전체 {total_items}건 중 요약 필요 {needs}건")
 
-    updated = 0
-    for week in archive["weeks"]:
-        items = week.get("items", [])
-        if not items:
-            continue
+    calls_made = 0
+    touched_weeks = {}
 
+    for week, item in to_process:
+        if calls_made >= DAILY_TOTAL_CAP:
+            print(f"일일 호출 한도({DAILY_TOTAL_CAP}) 도달, 남은 항목은 다음 실행에서 처리")
+            break
+
+        title = item.get("title", "")[:40]
         label = week.get("label", "")
-        week_updated = False
+        print(f"  [{label}] {title}... ", end="", flush=True)
 
-        for i, item in enumerate(items):
-            if not needs_update(item):
-                continue
+        result = summarize_item(client, item)
+        item["key_points"] = result.get("key_points", [])
+        item["industry_impact"] = result.get("industry_impact", "")
+        item["related_laws"] = result.get("related_laws", [])
+        item["summarized_with_body"] = result.get("summarized_with_body", False)
+        calls_made += 1
+        touched_weeks[(week.get("year"), week.get("week_num"))] = week
+        print("완료")
+        time.sleep(CALL_INTERVAL_SEC)
 
-            title = item.get("title", "")[:40]
-            print(f"  [{label}] {title}... ", end="", flush=True)
+    updated = calls_made
 
-            result = summarize_item(client, item)
-            item["key_points"] = result.get("key_points", [])
-            item["industry_impact"] = result.get("industry_impact", "")
-            item["related_laws"] = result.get("related_laws", [])
-            item["summarized_with_body"] = result.get("summarized_with_body", False)
-            week_updated = True
-            updated += 1
-            print("완료")
-            time.sleep(CALL_INTERVAL_SEC)
+    # 이번 실행에서 항목이 갱신된 주차만 주간 요약 재생성 (남은 예산 내에서만)
+    for week in touched_weeks.values():
+        if calls_made >= DAILY_TOTAL_CAP:
+            print("일일 호출 한도 도달, 주간 요약은 다음 실행에서 처리")
+            break
+        label = week.get("label", "")
+        print(f"  [{label}] 주간 요약 생성 중...")
+        week["weekly_summary"] = summarize_week(client, week)
+        calls_made += 1
+        time.sleep(CALL_INTERVAL_SEC)
 
-        # 주간 요약이 없거나 항목 요약 후 재생성
-        if week_updated or not week.get("weekly_summary"):
-            print(f"  [{label}] 주간 요약 생성 중...")
-            week["weekly_summary"] = summarize_week(client, week)
-            time.sleep(CALL_INTERVAL_SEC)
-
-    import datetime
     archive["last_updated"] = datetime.datetime.now().isoformat()
 
     with open(ARCHIVE_PATH, "w", encoding="utf-8") as f:
