@@ -534,7 +534,7 @@ def build():
       </h1>
       <button class="theme-toggle" onclick="toggleTheme()" id="themeToggleBtn" title="라이트/다크 모드 전환">🌙</button>
     </div>
-    <p>고메베이글 개발팀 · 식약처 연동 · {years[-1] if years else ""}~{years[0] if years else ""}년 누적 아카이브</p>
+    <p>식약처 연동 · {years[-1] if years else ""}~{years[0] if years else ""}년 누적 아카이브</p>
   </div>
   <div class="header-right">
     <span class="hbadge">식약처</span>
