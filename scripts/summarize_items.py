@@ -244,8 +244,18 @@ def main():
 
     updated = calls_made
 
-    # 이번 실행에서 항목이 갱신된 주차만 주간 요약 재생성 (남은 예산 내에서만)
-    for week in touched_weeks.values():
+    # 주간 요약이 필요한 대상 = 이번 실행에서 항목이 갱신된 주차 + 항목은 이미 다 있는데
+    # weekly_summary만 비어있는 주차(과거 실행이 일일 호출 한도에 걸려 항목 요약만 끝내고
+    # 주간 요약 단계를 못 밟은 채 끝난 경우 — needs_update()가 항목 기준이라 그 주차는
+    # 이후 영원히 다시 방문되지 않아 weekly_summary가 계속 비어있게 됨, 2026-07-29 발견)
+    weeks_needing_summary = {
+        (w.get("year"), w.get("week_num")): w
+        for w in archive["weeks"]
+        if w.get("items") and not w.get("weekly_summary")
+    }
+    weeks_needing_summary.update(touched_weeks)
+
+    for week in weeks_needing_summary.values():
         if calls_made >= DAILY_TOTAL_CAP:
             print("일일 호출 한도 도달, 주간 요약은 다음 실행에서 처리")
             break
