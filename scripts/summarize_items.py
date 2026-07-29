@@ -255,7 +255,15 @@ def main():
     }
     weeks_needing_summary.update(touched_weeks)
 
-    for week in weeks_needing_summary.values():
+    # 당해년도(사용자가 실제로 보는 최근 주차)를 과거 백필 주차보다 먼저 처리한다.
+    # archive 저장 순서(과거→최근)대로 처리하면 2023년 주차가 대량으로 큐를 독점해
+    # 정작 최근 주차 요약이 계속 뒤로 밀리는 문제가 있었음 (2026-07-29 발견).
+    ordered_weeks = sorted(
+        weeks_needing_summary.values(),
+        key=lambda w: (str(w.get("year")) != CURRENT_YEAR, w.get("year"), w.get("week_num")),
+    )
+
+    for week in ordered_weeks:
         if calls_made >= DAILY_TOTAL_CAP:
             print("일일 호출 한도 도달, 주간 요약은 다음 실행에서 처리")
             break
