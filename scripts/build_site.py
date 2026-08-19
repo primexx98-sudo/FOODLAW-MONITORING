@@ -5,6 +5,8 @@ import os
 import re
 from datetime import datetime
 
+from category_utils import CATEGORY_META, CATEGORY_ORDER, categorize_item
+
 REPO_ROOT = os.path.join(os.path.dirname(__file__), "..")
 ARCHIVE_PATH = os.path.join(REPO_ROOT, "data", "archive.json")
 OUTPUT_PATH = os.path.join(REPO_ROOT, "docs", "index.html")
@@ -22,6 +24,9 @@ STATUS_COLORS = {
 }
 
 INTEREST_KEYWORDS = ["건강기능식품", "기능성", "건기식"]
+
+LABEL_SPOTLIGHT_CATEGORY = "표시기준"
+LABEL_SPOTLIGHT_LIMIT = 12
 
 
 def is_interest(item):
@@ -53,8 +58,8 @@ EXCERPT_MAX_CHARS = 500
 
 
 def extract_excerpt(body_text):
-    """AI 요약이 아직 없는 항목(대부분 2023~2025년 백로그, 하루 10건 제한으로 순차
-    처리 중)도 상세페이지에서 이미 수집해둔 실제 본문(body_text)이 있으면 그걸
+    """AI 요약이 아직 없는 항목(대부분 2023~2025년 백로그, 하루 10건 제한으로
+    순차 처리 중)도 상세페이지에서 이미 수집해둔 실제 본문(body_text)이 있으면 그걸
     그대로 보여준다 — 기다릴 필요 없이 즉시 확인 가능하고, 원문이라 지어낼 위험도 없음.
     "개정이유 및 주요내용" 섹션을 우선 추출하고, 못 찾으면 본문 앞부분을 그대로 보여준다."""
     if not body_text:
@@ -114,6 +119,22 @@ def render_related_laws(related_laws, source_url):
     </div>"""
 
 
+def category_chip(category):
+    meta = CATEGORY_META[category]
+    return f'<span class="tag cat-tag {meta["css"]}">{meta["icon"]} {esc(meta["label"])}</span>'
+
+
+def render_preview_line(key_points):
+    """접힌 상태에서도 핵심 내용을 한 줄 미리 보여준다 — 클릭해서 펼쳐야만 내용을
+    알 수 있었던 정보 밀도 문제(사용자 피드백)를 해소하기 위해 추가."""
+    if not key_points:
+        return ""
+    first = key_points[0]
+    if len(first) > 90:
+        first = first[:90].rstrip() + "…"
+    return f'<div class="law-preview">{esc(first)}</div>'
+
+
 def render_item(item):
     title = esc(item.get("title", ""))
     source = item.get("source", "")
@@ -125,6 +146,7 @@ def render_item(item):
     related_laws = item.get("related_laws", [])
     body_text = item.get("body_text", "")
     is_new = item.get("is_new", False)
+    category = item.get("_category", "기타")
 
     src_cls = SOURCE_COLORS.get(source, "tag-gray")
     st_cls = STATUS_COLORS.get(status, "status-info")
@@ -143,16 +165,17 @@ def render_item(item):
     expandable = "expandable" if has_body else ""
 
     return f"""
-<div class="law-item {expandable}" data-source="{esc(source)}" data-status="{esc(status)}">
+<div class="law-item {expandable}" data-source="{esc(source)}" data-status="{esc(status)}" data-category="{esc(category)}">
   <div class="law-header" onclick="toggleItem(this)">
     <div class="law-tags">
       <span class="tag {st_cls}">{esc(status)}</span>
       <span class="tag {src_cls}">{esc(source)}</span>
-      <span class="tag tag-official">공식</span>
+      {category_chip(category)}
       {interest_badge}
       {new_badge}
     </div>
     <div class="law-title">{title}</div>
+    {render_preview_line(key_points)}
     <div class="law-meta">
       <span class="law-date">📅 {date} {esc(status)}</span>
       {"<span class='law-arrow'>▾</span>" if has_body else ""}
@@ -209,7 +232,7 @@ def render_week(week, index):
     summary_date = start.replace("-", ".")[:10] if start else ""
 
     return f"""
-<div class="week-section" data-year="{esc(year)}">
+<div class="week-section" data-year="{esc(year)}" id="week-{esc(year)}-{esc(week_num)}">
   <button class="accordion-btn {btn_open}" onclick="toggleWeek(this)">
     <div class="week-left">
       <span class="week-num">{esc(year)}년 {esc(week_num)}주차</span>
@@ -230,6 +253,57 @@ def render_week(week, index):
 </div>"""
 
 
+def render_category_overview(category_counts, total_items):
+    cards = [
+        f'''<button class="cat-card active" data-cat-btn data-cat="all" onclick="setCategory(this,'all')">
+      <span class="cat-card-icon">📋</span>
+      <span class="cat-card-label">전체</span>
+      <span class="cat-card-count">{total_items}<small>건</small></span>
+    </button>'''
+    ]
+    for cat in CATEGORY_ORDER:
+        meta = CATEGORY_META[cat]
+        count = category_counts.get(cat, 0)
+        highlight = " cat-card-priority" if cat == LABEL_SPOTLIGHT_CATEGORY else ""
+        cards.append(f'''<button class="cat-card {meta["css"]}{highlight}" data-cat-btn data-cat="{cat}" onclick="setCategory(this,'{cat}')">
+      <span class="cat-card-icon">{meta["icon"]}</span>
+      <span class="cat-card-label">{esc(meta["label"])}</span>
+      <span class="cat-card-count">{count}<small>건</small></span>
+    </button>''')
+    return f"""
+<div class="cat-overview">
+  <div class="cat-overview-title">유형별 현황 <span class="cat-overview-sub">— 클릭하면 아래 목록이 그 유형만 필터링됩니다</span></div>
+  <div class="cat-grid">
+    {"".join(cards)}
+  </div>
+</div>"""
+
+
+def render_label_spotlight(spotlight_items):
+    meta = CATEGORY_META[LABEL_SPOTLIGHT_CATEGORY]
+    if not spotlight_items:
+        body = '<p class="no-items">아직 표시사항 변경 항목이 수집되지 않았습니다.</p>'
+    else:
+        rows = []
+        for it in spotlight_items:
+            status = it.get("status", "")
+            st_cls = STATUS_COLORS.get(status, "status-info")
+            rows.append(f"""
+    <a class="spotlight-item" href="{esc(it.get('url', '#'))}" target="_blank" rel="noopener">
+      <span class="tag {st_cls}">{esc(status)}</span>
+      <span class="spotlight-title">{esc(it.get('title', ''))}</span>
+      <span class="spotlight-meta">{esc(it.get('date', ''))} · {esc(it.get('_week_label', ''))}</span>
+    </a>""")
+        body = "".join(rows)
+    return f"""
+<div class="card label-spotlight">
+  <div class="card-header cat-label-header">{meta["icon"]} 표시사항 변경 추적 — 최근 {len(spotlight_items)}건</div>
+  <div class="label-spotlight-body">
+    {body}
+  </div>
+</div>"""
+
+
 def build():
     if not os.path.exists(ARCHIVE_PATH):
         weeks, total_weeks, last_updated = [], 0, ""
@@ -245,6 +319,25 @@ def build():
         total_weeks = archive.get("total_weeks", len(weeks))
         last_updated = archive.get("last_updated", "")
 
+    # 카테고리는 archive.json에 저장하지 않고 매 빌드마다 순수 함수로 재계산 —
+    # 과거 항목에도 즉시 적용되고, 분류 로직을 바꿔도 재수집 없이 바로 반영됨.
+    flat_items = []
+    category_counts = {}
+    for w in weeks:
+        week_label = w.get("label") or f"{w.get('year', '')}년 {w.get('week_num', '')}주차"
+        for it in w.get("items", []):
+            cat = categorize_item(it)
+            it["_category"] = cat
+            it["_week_label"] = week_label
+            category_counts[cat] = category_counts.get(cat, 0) + 1
+            flat_items.append(it)
+
+    label_spotlight_items = sorted(
+        [it for it in flat_items if it["_category"] == LABEL_SPOTLIGHT_CATEGORY],
+        key=lambda x: x.get("date", ""),
+        reverse=True,
+    )[:LABEL_SPOTLIGHT_LIMIT]
+
     years = sorted({w.get("year") for w in weeks if w.get("year")}, reverse=True)
     default_year = years[0] if years else ""
     year_btns_html = "".join(
@@ -257,7 +350,7 @@ def build():
     kpi_total = lc.get("total", 0)
     kpi_enforce = lc.get("시행", 0)
     kpi_notice = lc.get("예고", 0)
-    all_items = sum(len(w.get("items", [])) for w in weeks)
+    all_items = len(flat_items)
 
     archive_text = "\n\n".join(
         f"[{w.get('label', '')} {w.get('start_date', '')}~{w.get('end_date', '')}]\n"
@@ -274,12 +367,17 @@ def build():
     weeks_html = "".join(render_week(w, i) for i, w in enumerate(weeks)) or \
         '<p class="no-items" style="padding:40px;text-align:center;">아직 데이터가 없습니다.</p>'
 
+    cat_overview_html = render_category_overview(category_counts, all_items)
+    label_spotlight_html = render_label_spotlight(label_spotlight_items)
+
     html = f"""<!DOCTYPE html>
 <html lang="ko">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width,initial-scale=1.0">
   <title>식품 법령 개정 모니터</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
   <script>
     // 2026-07-23: 라이트/다크 토글 — 저장된 값을 CSS보다 먼저 적용해 첫 렌더 시
     // 깜빡임(잘못된 테마로 그렸다가 바뀌는 현상) 없이 바로 맞는 테마로 뜨게 함
@@ -292,130 +390,160 @@ def build():
   </script>
   <style>
     *,*::before,*::after{{box-sizing:border-box;margin:0;padding:0}}
+    /* 2026-08-19: 트렌드 대시보드(health-trend)와 동일한 Binance 다크테마 토큰으로 통일
+       — 두 대시보드가 허브(food-monitor-hub) 안에서 서로 다른 룩앤필이던 문제 해소 */
     :root{{
-      --bg:#1a1d1b;--bg2:#1f2320;--surface:#252926;--surface2:#2c302e;
-      --border:#343834;--border2:#3d413b;
-      --text:#dde8df;--sub:#8a9e8e;
-      --green:#52b788;--green2:#2d6a4f;--green3:#b7e4c7;
-      --blue:#4db6e8;--orange:#e8a838;--red:#d95f5f;--red2:#f28b82;
+      --canvas:#0b0e11;--surface:#1e2329;--surface-elevated:#2b3139;
+      --hairline:#2b3139;--body-text:#eaecef;--muted:#707a8a;--muted-strong:#929aa5;
+      --primary:#fcd535;--primary-text:#fcd535;--primary-active:#f0b90b;
+      --up:#0ecb81;--down:#f6465d;--info:#3b82f6;--turquoise:#2dbdb6;
     }}
     :root[data-theme="light"]{{
-      --bg:#f6f8f6;--bg2:#eef1ee;--surface:#ffffff;--surface2:#eef1ee;
-      --border:#dde3dd;--border2:#c9d1c9;
-      --text:#1a2320;--sub:#5c6b60;
-      --green:#2d8659;--green2:#d7f0e2;--green3:#1f5c3d;
-      --blue:#1f7aa8;--orange:#a86a1a;--red:#c0392b;--red2:#9c2b1f;
+      --canvas:#f7f8fa;--surface:#ffffff;--surface-elevated:#f0f2f5;
+      --hairline:#e6e8eb;--body-text:#1e2329;--muted:#76808f;--muted-strong:#4b5563;
+      --primary:#fcd535;--primary-text:#9a7300;--primary-active:#b8860b;
+      --up:#0a9f68;--down:#d63447;--info:#2563eb;--turquoise:#0f8f88;
     }}
-    body{{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Apple SD Gothic Neo','Noto Sans KR',sans-serif;
-      background:var(--bg);color:var(--text);font-size:14px;line-height:1.65;}}
+    body{{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI','Apple SD Gothic Neo','Noto Sans KR',sans-serif;
+      background:var(--canvas);color:var(--body-text);font-size:14px;line-height:1.65;}}
+    .mono{{font-family:'JetBrains Mono',monospace;}}
 
     /* ── HEADER ── */
-    /* 헤더는 라이트/다크 상관없이 항상 고정 다크 그린 그라디언트라, 안의 텍스트 색도
-       전역 테마 변수(var(--sub) 등)를 쓰면 라이트 모드에서 배경과 같은 톤이 되어
-       안 보이는 문제가 생김 — 헤더 내부는 고정값 사용 */
     .site-header{{
-      background:linear-gradient(135deg,#0d2016 0%,#1a3a27 100%);
-      border-bottom:1px solid var(--border);
+      background:var(--canvas);border-bottom:1px solid var(--hairline);
       padding:14px 24px 12px;
       display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:10px;
     }}
     .header-left{{display:flex;flex-direction:column;gap:2px;}}
-    .header-left h1{{font-size:1.15rem;font-weight:700;color:#b7e4c7;letter-spacing:-.3px;}}
-    .header-left h1 svg{{vertical-align:middle;margin-right:6px;}}
-    .header-left p{{font-size:0.75rem;color:rgba(255,255,255,.55);margin-top:3px;}}
+    .header-left h1{{font-size:1.15rem;font-weight:700;color:var(--body-text);letter-spacing:-.3px;}}
+    .header-left h1 svg{{vertical-align:middle;margin-right:6px;color:var(--primary-text);}}
+    .header-left p{{font-size:0.75rem;color:var(--muted);margin-top:3px;}}
     .header-titlerow{{display:flex;align-items:center;gap:8px;}}
     .header-right{{display:flex;gap:6px;flex-wrap:wrap;align-items:center;}}
-    .hbadge{{background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,.15);
-      border-radius:4px;padding:3px 9px;font-size:0.72rem;color:rgba(255,255,255,.7);}}
-    .hbadge.green{{background:#2d6a4f;color:#b7e4c7;border-color:#52b788;}}
+    .hbadge{{background:var(--surface-elevated);border:1px solid var(--hairline);
+      border-radius:4px;padding:3px 9px;font-size:0.72rem;color:var(--muted-strong);}}
+    .hbadge.accent{{background:rgba(252,213,53,.12);color:var(--primary-text);border-color:rgba(252,213,53,.35);}}
     .theme-toggle{{
-      background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.2);
-      color:#b7e4c7;height:26px;padding:0 10px;border-radius:13px;cursor:pointer;
+      background:var(--surface-elevated);border:1px solid var(--hairline);
+      color:var(--body-text);height:26px;padding:0 10px;border-radius:13px;cursor:pointer;
       display:inline-flex;align-items:center;gap:5px;justify-content:center;
       font-size:0.72rem;font-weight:600;flex-shrink:0;line-height:1;white-space:nowrap;
     }}
-    .theme-toggle:hover{{background:rgba(255,255,255,.15);}}
+    .theme-toggle:hover{{background:var(--hairline);}}
 
     /* ── TOOLBAR ── */
     .toolbar{{
-      background:var(--bg2);border-bottom:1px solid var(--border);
+      background:var(--canvas);border-bottom:1px solid var(--hairline);
       padding:7px 24px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;
     }}
-    .toolbar-info{{font-size:0.8rem;color:var(--sub);flex:1;}}
-    .toolbar-info b{{color:var(--green);}}
+    .toolbar-info{{font-size:0.8rem;color:var(--muted);flex:1;}}
+    .toolbar-info b{{color:var(--primary-text);}}
     .btn-tool{{
-      background:var(--surface);border:1px solid var(--border2);color:var(--text);
+      background:var(--surface);border:1px solid var(--hairline);color:var(--body-text);
       padding:4px 11px;border-radius:4px;font-size:0.78rem;cursor:pointer;
     }}
-    .btn-tool:hover{{background:var(--green2);color:var(--green3);}}
+    .btn-tool:hover{{background:var(--surface-elevated);}}
 
     /* ── FILTER ── */
     .filter-bar{{
-      background:var(--bg2);border-bottom:1px solid var(--border);
+      background:var(--canvas);border-bottom:1px solid var(--hairline);
       padding:7px 24px;display:flex;gap:6px;flex-wrap:wrap;align-items:center;
     }}
-    .filter-label{{font-size:0.74rem;color:var(--sub);}}
-    .filter-sep{{width:1px;height:14px;background:var(--border2);margin:0 4px;}}
+    .filter-label{{font-size:0.74rem;color:var(--muted);}}
+    .filter-sep{{width:1px;height:14px;background:var(--hairline);margin:0 4px;}}
     .filter-btn{{
-      background:transparent;border:1px solid var(--border2);color:var(--sub);
+      background:transparent;border:1px solid var(--hairline);color:var(--muted);
       padding:3px 11px;border-radius:20px;font-size:0.75rem;cursor:pointer;
     }}
-    .filter-btn.active{{background:var(--green2);border-color:var(--green);color:var(--green3);}}
+    .filter-btn.active{{background:rgba(252,213,53,.15);border-color:var(--primary);color:var(--primary-text);}}
 
     /* ── KPI ── */
     .kpi-row{{
       display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));
-      gap:8px;padding:14px 24px;background:var(--bg2);border-bottom:1px solid var(--border);
+      gap:8px;padding:14px 24px;background:var(--canvas);border-bottom:1px solid var(--hairline);
     }}
-    .kpi{{background:var(--surface);border:1px solid var(--border);border-radius:7px;
-      padding:12px 15px;border-left:3px solid var(--green);}}
-    .kpi.blue{{border-left-color:var(--blue);}}
-    .kpi.orange{{border-left-color:var(--orange);}}
-    .kpi.red{{border-left-color:var(--red);}}
-    .kpi-label{{font-size:0.72rem;color:var(--sub);margin-bottom:4px;}}
-    .kpi-val{{font-size:1.35rem;font-weight:700;}}
-    .kpi-unit{{font-size:0.7rem;color:var(--sub);}}
+    .kpi{{background:var(--surface);border:none;border-radius:12px;
+      padding:12px 15px;border-left:3px solid var(--primary);}}
+    .kpi.blue{{border-left-color:var(--info);}}
+    .kpi.orange{{border-left-color:var(--primary);}}
+    .kpi.red{{border-left-color:var(--down);}}
+    .kpi-label{{font-size:0.72rem;color:var(--muted);margin-bottom:4px;}}
+    .kpi-val{{font-size:1.35rem;font-weight:700;font-family:'JetBrains Mono',monospace;}}
+    .kpi-unit{{font-size:0.7rem;color:var(--muted);}}
+
+    /* ── CATEGORY OVERVIEW ── */
+    .cat-overview{{padding:16px 24px 4px;background:var(--canvas);}}
+    .cat-overview-title{{font-size:0.85rem;font-weight:700;color:var(--body-text);margin-bottom:10px;}}
+    .cat-overview-sub{{font-weight:400;color:var(--muted);font-size:0.76rem;}}
+    .cat-grid{{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px;margin-bottom:14px;}}
+    .cat-card{{
+      background:var(--surface);border:1px solid var(--hairline);border-radius:10px;
+      padding:10px 12px;cursor:pointer;text-align:left;display:flex;flex-direction:column;gap:4px;
+      color:var(--body-text);transition:border-color .15s;
+    }}
+    .cat-card:hover{{border-color:var(--muted-strong);}}
+    .cat-card.active{{border-color:var(--primary);box-shadow:0 0 0 1px var(--primary) inset;}}
+    .cat-card-priority{{border-color:rgba(252,213,53,.4);}}
+    .cat-card-icon{{font-size:1.1rem;}}
+    .cat-card-label{{font-size:0.76rem;color:var(--muted-strong);font-weight:600;}}
+    .cat-card-count{{font-size:1.15rem;font-weight:700;font-family:'JetBrains Mono',monospace;color:var(--body-text);}}
+    .cat-card-count small{{font-size:0.65rem;font-weight:500;color:var(--muted);margin-left:2px;}}
+
+    /* ── LABEL SPOTLIGHT ── */
+    .card{{background:var(--surface);border:none;border-radius:12px;margin:0 24px 16px;overflow:hidden;}}
+    .card-header{{background:transparent;color:var(--body-text);border-bottom:1px solid var(--hairline);
+      font-weight:700;font-size:0.92rem;padding:12px 16px;}}
+    .cat-label-header{{border-bottom-color:var(--primary);}}
+    .label-spotlight-body{{padding:6px 8px;}}
+    .spotlight-item{{
+      display:flex;align-items:center;gap:10px;padding:8px 8px;border-bottom:1px solid var(--hairline);
+      text-decoration:none;color:var(--body-text);
+    }}
+    .spotlight-item:last-child{{border-bottom:none;}}
+    .spotlight-item:hover{{background:var(--surface-elevated);}}
+    .spotlight-title{{flex:1;font-size:0.85rem;line-height:1.4;min-width:0;}}
+    .spotlight-meta{{font-size:0.72rem;color:var(--muted);white-space:nowrap;flex-shrink:0;}}
 
     /* ── MAIN ── */
     .main{{max-width:860px;margin:0 auto;padding:14px 20px 80px;}}
 
     /* ── WEEK ── */
     .week-section{{
-      background:var(--surface);border:1px solid var(--border);
-      border-radius:8px;margin-bottom:10px;overflow:hidden;
+      background:var(--surface);border:none;
+      border-radius:12px;margin-bottom:10px;overflow:hidden;
     }}
     .week-section.hidden{{display:none;}}
     .accordion-btn{{
       width:100%;background:none;border:none;padding:12px 18px;
-      display:flex;justify-content:space-between;align-items:center;cursor:pointer;color:var(--text);
+      display:flex;justify-content:space-between;align-items:center;cursor:pointer;color:var(--body-text);
     }}
-    .accordion-btn:hover{{background:rgba(255,255,255,0.025);}}
+    .accordion-btn:hover{{background:var(--surface-elevated);}}
     .week-left{{display:flex;align-items:center;gap:14px;}}
-    .week-num{{font-size:1rem;font-weight:700;color:var(--green);}}
-    .week-range{{font-size:0.8rem;color:var(--sub);}}
+    .week-num{{font-size:1rem;font-weight:700;color:var(--primary-text);}}
+    .week-range{{font-size:0.8rem;color:var(--muted);font-family:'JetBrains Mono',monospace;}}
     .week-right{{display:flex;align-items:center;gap:7px;}}
-    .badge-latest{{background:var(--red);color:#fff;font-size:0.68rem;font-weight:700;padding:2px 6px;border-radius:3px;}}
-    .badge-prev{{background:var(--surface2);color:var(--sub);font-size:0.68rem;padding:2px 6px;border-radius:3px;}}
-    .week-count{{background:var(--green2);color:var(--green3);font-size:0.75rem;font-weight:600;padding:2px 8px;border-radius:4px;}}
-    .week-arrow{{font-size:0.8rem;color:var(--sub);transition:transform .2s;}}
+    .badge-latest{{background:var(--down);color:#fff;font-size:0.68rem;font-weight:700;padding:2px 6px;border-radius:3px;}}
+    .badge-prev{{background:var(--surface-elevated);color:var(--muted);font-size:0.68rem;padding:2px 6px;border-radius:3px;}}
+    .week-count{{background:rgba(252,213,53,.15);color:var(--primary-text);font-size:0.75rem;font-weight:600;padding:2px 8px;border-radius:4px;font-family:'JetBrains Mono',monospace;}}
+    .week-arrow{{font-size:0.8rem;color:var(--muted);transition:transform .2s;}}
     .accordion-btn.open .week-arrow{{transform:rotate(180deg);}}
-    .week-content{{display:none;border-top:1px solid var(--border);}}
+    .week-content{{display:none;border-top:1px solid var(--hairline);}}
     .week-content.open{{display:block;}}
 
     /* ── SUMMARY BOX ── */
     .summary-box{{
-      background:rgba(45,106,79,0.12);border-bottom:1px solid var(--border);
+      background:var(--surface-elevated);border-bottom:1px solid var(--hairline);
       padding:14px 18px;
     }}
-    .summary-title{{font-size:0.78rem;color:var(--green);font-weight:600;margin-bottom:7px;}}
-    .summary-text{{font-size:0.83rem;color:var(--sub);line-height:1.7;}}
+    .summary-title{{font-size:0.78rem;color:var(--primary-text);font-weight:600;margin-bottom:7px;}}
+    .summary-text{{font-size:0.83rem;color:var(--muted-strong);line-height:1.7;}}
     .btn-copy{{
       display:inline-flex;align-items:center;gap:5px;
-      margin-top:10px;background:var(--surface2);border:1px solid var(--border2);
-      color:var(--sub);padding:4px 11px;border-radius:4px;font-size:0.75rem;cursor:pointer;
+      margin-top:10px;background:var(--surface);border:1px solid var(--hairline);
+      color:var(--muted);padding:4px 11px;border-radius:4px;font-size:0.75rem;cursor:pointer;
     }}
-    .btn-copy:hover{{background:var(--green2);color:var(--green3);}}
-    .btn-copy.copied{{color:var(--green);border-color:var(--green);}}
+    .btn-copy:hover{{background:var(--surface-elevated);color:var(--body-text);}}
+    .btn-copy.copied{{color:var(--up);border-color:var(--up);}}
 
     /* ── GROUPS ── */
     .groups-wrap{{padding:10px 14px 14px;}}
@@ -423,103 +551,100 @@ def build():
     .group-header{{
       display:flex;align-items:center;gap:8px;
       padding:6px 0;margin-bottom:6px;
-      border-bottom:1px dashed var(--border);
+      border-bottom:1px dashed var(--hairline);
     }}
     .group-dot{{width:8px;height:8px;border-radius:50%;flex-shrink:0;}}
-    .dot-enforce{{background:var(--green);}}
-    .dot-notice{{background:var(--orange);}}
-    .dot-other{{background:var(--sub);}}
-    .group-label{{font-size:0.77rem;color:var(--sub);flex:1;}}
-    .group-count{{font-size:0.74rem;color:var(--sub);}}
+    .dot-enforce{{background:var(--up);}}
+    .dot-notice{{background:var(--primary);}}
+    .dot-other{{background:var(--muted);}}
+    .group-label{{font-size:0.77rem;color:var(--muted);flex:1;}}
+    .group-count{{font-size:0.74rem;color:var(--muted);}}
 
     /* ── LAW ITEM ── */
     .law-item{{
-      background:var(--bg2);border:1px solid var(--border);
-      border-radius:6px;margin-bottom:7px;overflow:hidden;
+      background:var(--surface-elevated);border:none;
+      border-radius:8px;margin-bottom:7px;overflow:hidden;
     }}
     .law-item.hidden{{display:none;}}
     .law-header{{padding:11px 14px;cursor:pointer;}}
-    .law-item.expandable .law-header:hover{{background:rgba(255,255,255,0.02);}}
+    .law-item.expandable .law-header:hover{{background:rgba(255,255,255,0.03);}}
     .law-tags{{display:flex;gap:5px;flex-wrap:wrap;align-items:center;margin-bottom:6px;}}
     .tag{{display:inline-block;padding:2px 7px;border-radius:3px;font-size:0.7rem;font-weight:600;}}
-    .tag-green{{background:rgba(82,183,136,.15);color:var(--green);border:1px solid rgba(82,183,136,.3);}}
-    .tag-blue{{background:rgba(77,182,232,.15);color:var(--blue);border:1px solid rgba(77,182,232,.3);}}
-    .tag-orange{{background:rgba(232,168,56,.15);color:var(--orange);border:1px solid rgba(232,168,56,.3);}}
-    .tag-gray{{background:rgba(255,255,255,.07);color:var(--sub);border:1px solid var(--border);}}
-    .tag-official{{background:rgba(255,255,255,.05);color:var(--sub);border:1px solid var(--border);}}
-    .tag-interest{{background:rgba(217,95,95,.15);color:var(--red2);border:1px solid rgba(217,95,95,.35);}}
-    .status-enforce{{background:rgba(82,183,136,.2);color:#6edb9e;border:1px solid rgba(82,183,136,.4);}}
-    .status-notice{{background:rgba(232,168,56,.2);color:#f0c060;border:1px solid rgba(232,168,56,.4);}}
-    .status-pub{{background:rgba(77,182,232,.2);color:#7dd4f5;border:1px solid rgba(77,182,232,.4);}}
-    /* 밝은 파스텔 텍스트는 다크 배경 전용 — 라이트 모드에서는 흰 바탕에 대비가 안 나와서 진한 색으로 교체 */
-    :root[data-theme="light"] .status-enforce{{color:#1f7a52;}}
-    :root[data-theme="light"] .status-notice{{color:#8a5a10;}}
-    :root[data-theme="light"] .status-pub{{color:#1565a0;}}
-    .status-info{{background:rgba(255,255,255,.07);color:var(--sub);border:1px solid var(--border);}}
-    .badge-new{{background:var(--red);color:#fff;font-size:0.66rem;font-weight:700;padding:2px 5px;border-radius:3px;}}
-    .law-title{{font-size:0.88rem;font-weight:600;line-height:1.45;margin-bottom:5px;}}
+    .tag-green{{background:rgba(14,203,129,.15);color:var(--up);border:1px solid rgba(14,203,129,.3);}}
+    .tag-gray{{background:var(--surface);color:var(--muted);border:1px solid var(--hairline);}}
+    .tag-interest{{background:rgba(45,189,182,.15);color:var(--turquoise);border:1px solid rgba(45,189,182,.35);}}
+    .cat-tag{{border:1px solid transparent;}}
+    .cat-label{{background:rgba(252,213,53,.15);color:var(--primary-text);border-color:rgba(252,213,53,.35);}}
+    .cat-spec{{background:rgba(59,130,246,.15);color:var(--info);border-color:rgba(59,130,246,.35);}}
+    .cat-safety{{background:rgba(14,203,129,.15);color:var(--up);border-color:rgba(14,203,129,.3);}}
+    .cat-trade{{background:rgba(45,189,182,.15);color:var(--turquoise);border-color:rgba(45,189,182,.35);}}
+    .cat-biz{{background:rgba(146,154,165,.15);color:var(--muted-strong);border-color:rgba(146,154,165,.3);}}
+    .cat-etc{{background:rgba(112,122,138,.12);color:var(--muted);border-color:rgba(112,122,138,.25);}}
+    .status-enforce{{background:rgba(14,203,129,.2);color:var(--up);border:1px solid rgba(14,203,129,.4);}}
+    .status-notice{{background:rgba(252,213,53,.2);color:var(--primary-text);border:1px solid rgba(252,213,53,.4);}}
+    .status-pub{{background:rgba(59,130,246,.2);color:var(--info);border:1px solid rgba(59,130,246,.4);}}
+    .status-info{{background:var(--surface);color:var(--muted);border:1px solid var(--hairline);}}
+    .badge-new{{background:var(--down);color:#fff;font-size:0.66rem;font-weight:700;padding:2px 5px;border-radius:3px;}}
+    .law-title{{font-size:0.9rem;font-weight:600;line-height:1.45;margin-bottom:4px;}}
+    .law-preview{{font-size:0.78rem;color:var(--muted);line-height:1.4;margin-bottom:6px;}}
     .law-meta{{display:flex;justify-content:space-between;align-items:center;}}
-    .law-date{{font-size:0.74rem;color:var(--sub);}}
-    .law-arrow{{font-size:0.76rem;color:var(--sub);transition:transform .2s;}}
+    .law-date{{font-size:0.74rem;color:var(--muted);font-family:'JetBrains Mono',monospace;}}
+    .law-arrow{{font-size:0.76rem;color:var(--muted);transition:transform .2s;}}
     .law-item.expanded .law-arrow{{transform:rotate(180deg);}}
     .law-body{{
-      display:none;padding:12px 14px 14px;border-top:1px solid var(--border);
+      display:none;padding:12px 14px 14px;border-top:1px solid var(--hairline);
     }}
     .law-item.expanded .law-body{{display:block;}}
 
     /* ── KEY POINTS ── */
-    .section-label{{font-size:0.72rem;color:var(--sub);font-weight:600;margin:4px 0 6px;text-transform:uppercase;letter-spacing:.5px;}}
+    .section-label{{font-size:0.72rem;color:var(--muted);font-weight:600;margin:4px 0 6px;text-transform:uppercase;letter-spacing:.5px;}}
     .key-points{{list-style:none;margin-bottom:12px;}}
     .key-points li{{
       display:flex;gap:8px;padding:4px 0;
-      font-size:0.83rem;color:var(--sub);border-bottom:1px solid var(--border);
+      font-size:0.83rem;color:var(--muted-strong);border-bottom:1px solid var(--hairline);
     }}
     .key-points li:last-child{{border-bottom:none;}}
-    .kp-num{{color:var(--green);font-weight:700;flex-shrink:0;min-width:16px;}}
+    .kp-num{{color:var(--primary-text);font-weight:700;flex-shrink:0;min-width:16px;}}
     .kp-text{{flex:1;}}
     .raw-excerpt{{
-      font-size:0.83rem;color:var(--sub);line-height:1.7;margin-bottom:12px;
-      white-space:pre-line;background:var(--bg2);border:1px solid var(--border);
+      font-size:0.83rem;color:var(--muted-strong);line-height:1.7;margin-bottom:12px;
+      white-space:pre-line;background:var(--surface);border:1px solid var(--hairline);
       border-radius:4px;padding:10px 12px;
     }}
 
     /* ── IMPACT ── */
     .impact-box{{
-      font-size:0.81rem;color:var(--orange);
-      background:rgba(232,168,56,.08);border-left:3px solid var(--orange);
+      font-size:0.81rem;color:var(--primary-text);
+      background:rgba(252,213,53,.08);border-left:3px solid var(--primary);
       padding:8px 12px;border-radius:0 4px 4px 0;margin-bottom:12px;line-height:1.5;
     }}
 
     /* ── LAW FOOTER ── */
     .law-footer{{display:flex;gap:7px;flex-wrap:wrap;margin-top:4px;}}
     .btn-original{{
-      background:var(--green2);color:var(--green3);border:none;
+      background:rgba(252,213,53,.15);color:var(--primary-text);border:none;
       padding:5px 12px;border-radius:4px;font-size:0.78rem;cursor:pointer;
-      text-decoration:none;display:inline-block;
+      text-decoration:none;display:inline-block;font-weight:600;
     }}
     .btn-original:hover{{filter:brightness(1.15);}}
-    .law-btn{{
-      background:var(--surface2);border:1px solid var(--border2);color:var(--sub);
-      padding:4px 10px;border-radius:4px;font-size:0.74rem;text-decoration:none;
-      display:inline-flex;align-items:center;gap:4px;
-    }}
-    .law-btn:hover{{background:var(--surface);color:var(--text);}}
     .law-tag{{
-      background:var(--surface2);border:1px solid var(--border2);color:var(--sub);
+      background:var(--surface);border:1px solid var(--hairline);color:var(--muted);
       padding:4px 10px;border-radius:4px;font-size:0.74rem;
       display:inline-flex;align-items:center;gap:4px;
     }}
 
-    .no-items{{color:var(--sub);font-size:0.86rem;padding:16px 4px;}}
+    .no-items{{color:var(--muted);font-size:0.86rem;padding:16px 4px;}}
 
     .site-footer{{
-      text-align:center;padding:20px;font-size:0.73rem;color:var(--sub);
-      border-top:1px solid var(--border);margin-top:40px;
+      text-align:center;padding:20px;font-size:0.73rem;color:var(--muted);
+      border-top:1px solid var(--hairline);margin-top:40px;
     }}
     @media(max-width:600px){{
       .kpi-row{{grid-template-columns:1fr 1fr;}}
+      .cat-grid{{grid-template-columns:repeat(2,1fr);}}
       .week-range{{display:none;}}
       .header-right{{display:none;}}
+      .card{{margin:0 12px 16px;}}
     }}
   </style>
 </head>
@@ -529,7 +654,7 @@ def build():
   <div class="header-left">
     <div class="header-titlerow">
       <h1>
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:#52b788"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
         식품 법령 개정 모니터
       </h1>
       <button class="theme-toggle" onclick="toggleTheme()" id="themeToggleBtn" title="라이트/다크 모드 전환"><span id="themeToggleIcon">🌙</span><span id="themeToggleLabel">라이트 모드</span></button>
@@ -538,7 +663,7 @@ def build():
   </div>
   <div class="header-right">
     <span class="hbadge">식약처</span>
-    <span class="hbadge green">총 {total_weeks}주차 · {all_items}건 수록</span>
+    <span class="hbadge accent">총 {total_weeks}주차 · {all_items}건 수록</span>
   </div>
 </header>
 
@@ -578,6 +703,10 @@ def build():
     <div class="kpi-val">{total_weeks}<span class="kpi-unit">주</span></div>
   </div>
 </div>
+
+{cat_overview_html}
+
+{label_spotlight_html}
 
 <main class="main">
   {weeks_html}
@@ -629,13 +758,15 @@ function collapseAll() {{
   }});
 }}
 
-let activeYear='{default_year}', activeSt='all';
+let activeYear='{default_year}', activeSt='all', activeCat='all';
 function applyFilter() {{
   document.querySelectorAll('.week-section').forEach(w => {{
     w.classList.toggle('hidden', activeYear!=='all' && w.dataset.year!==activeYear);
   }});
   document.querySelectorAll('.law-item').forEach(it => {{
-    it.classList.toggle('hidden', activeSt!=='all' && it.dataset.status!==activeSt);
+    const stHide = activeSt!=='all' && it.dataset.status!==activeSt;
+    const catHide = activeCat!=='all' && it.dataset.category!==activeCat;
+    it.classList.toggle('hidden', stHide || catHide);
   }});
 }}
 function setYear(btn, val) {{
@@ -645,6 +776,11 @@ function setYear(btn, val) {{
 function setStatus(btn, val) {{
   document.querySelectorAll('.filter-btn[onclick*="setStatus"]').forEach(b=>b.classList.remove('active'));
   btn.classList.add('active'); activeSt=val; applyFilter();
+}}
+function setCategory(btn, val) {{
+  document.querySelectorAll('[data-cat-btn]').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active'); activeCat=val; applyFilter();
+  document.querySelector('.main').scrollIntoView({{behavior:'smooth', block:'start'}});
 }}
 applyFilter();
 
