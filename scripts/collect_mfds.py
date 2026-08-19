@@ -104,7 +104,14 @@ def fetch_list_page(board, page=1):
         date_obj = parse_date(date_text)
 
         href = title_el.get("href", "")
-        item_url = urljoin(url, href)
+        if not href:
+            # 2026-08-19 발견: 극히 드물게 목록 행의 a.title에 href가 비어있는 경우가
+            # 있었음 — urljoin(url, "")은 목록 페이지 자기 자신의 URL을 돌려줘서
+            # "원문 바로가기"가 실제로는 목록 페이지로 가는 깨진 링크가 되고 있었다.
+            # href가 없으면 url을 빈 문자열로 남겨 build_site.py가 버튼을 숨기게 하고,
+            # 로그로 남겨 다음에 이 항목의 실제 링크를 수동으로 확인할 수 있게 한다.
+            print(f"    [경고] href 없음, 원문 링크 미확보: {title}")
+        item_url = urljoin(url, href) if href else ""
 
         parsed.append({
             "title": title,

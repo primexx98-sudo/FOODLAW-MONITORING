@@ -112,9 +112,16 @@ def render_related_laws(related_laws, source_url):
             name = law.get("title") if isinstance(law, dict) else law
             if name:
                 tags.append(f'<span class="law-tag">📄 {esc(name)}</span>')
+    # 2026-08-19: 수집 시 원문 링크를 확보 못한 항목(source_url 없음, list.do로만
+    # 잡히던 과거 버그)은 "원문 바로가기"를 눌러도 목록 페이지로 가는 깨진 링크가
+    # 되므로, 버튼 대신 안내 문구만 보여준다(collect_mfds.py 쪽 로그도 참고).
+    if source_url and not source_url.endswith("/list.do"):
+        link_html = f'<a class="btn-original" href="{esc(source_url)}" target="_blank" rel="noopener">원문 바로가기</a>'
+    else:
+        link_html = '<span class="btn-original-disabled">원문 링크 확인 불가</span>'
     return f"""
     <div class="law-footer">
-      <a class="btn-original" href="{esc(source_url)}" target="_blank" rel="noopener">원문 바로가기</a>
+      {link_html}
       {"".join(tags)}
     </div>"""
 
@@ -288,12 +295,16 @@ def render_label_spotlight(spotlight_items):
         for it in spotlight_items:
             status = it.get("status", "")
             st_cls = STATUS_COLORS.get(status, "status-info")
+            it_url = it.get("url", "")
+            has_link = bool(it_url) and not it_url.endswith("/list.do")
+            tag_name = "a" if has_link else "div"
+            href_attr = f'href="{esc(it_url)}" target="_blank" rel="noopener"' if has_link else ""
             rows.append(f"""
-    <a class="spotlight-item" href="{esc(it.get('url', '#'))}" target="_blank" rel="noopener">
+    <{tag_name} class="spotlight-item" {href_attr}>
       <span class="tag {st_cls}">{esc(status)}</span>
       <span class="spotlight-title">{esc(it.get('title', ''))}</span>
       <span class="spotlight-meta">{esc(it.get('date', ''))} · {esc(it.get('_week_label', ''))}</span>
-    </a>""")
+    </{tag_name}>""")
         body = "".join(rows)
     return f"""
 <div class="card label-spotlight">
@@ -627,6 +638,10 @@ def build():
       text-decoration:none;display:inline-block;font-weight:600;
     }}
     .btn-original:hover{{filter:brightness(1.15);}}
+    .btn-original-disabled{{
+      color:var(--muted);font-size:0.78rem;padding:5px 12px;
+      border:1px dashed var(--hairline);border-radius:4px;display:inline-block;
+    }}
     .law-tag{{
       background:var(--surface);border:1px solid var(--hairline);color:var(--muted);
       padding:4px 10px;border-radius:4px;font-size:0.74rem;
