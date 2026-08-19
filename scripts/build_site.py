@@ -126,6 +126,25 @@ def render_related_laws(related_laws, source_url):
     </div>"""
 
 
+SEARCH_TEXT_MAX_CHARS = 400
+
+
+def build_search_text(item):
+    """검색창(클라이언트 사이드)이 매칭할 대상 텍스트 — 제목+핵심내용+업계영향+
+    관련법령명까지 포함시켜 제목만으로는 못 찾는 항목도 검색되게 한다."""
+    parts = [item.get("title", "")]
+    parts.extend(item.get("key_points") or [])
+    if item.get("industry_impact"):
+        parts.append(item["industry_impact"])
+    for law in item.get("related_laws") or []:
+        name = law.get("title") if isinstance(law, dict) else law
+        if name:
+            parts.append(name)
+    if not item.get("key_points"):
+        parts.append((item.get("body_text") or "")[:SEARCH_TEXT_MAX_CHARS])
+    return " ".join(parts).lower()
+
+
 def category_chip(category):
     meta = CATEGORY_META[category]
     return f'<span class="tag cat-tag {meta["css"]}">{meta["icon"]} {esc(meta["label"])}</span>'
@@ -170,9 +189,10 @@ def render_item(item):
     body_html = main_html + render_impact(impact) + render_related_laws(related_laws, url)
     has_body = bool(key_points or impact or related_laws or body_text)
     expandable = "expandable" if has_body else ""
+    search_text = esc(build_search_text(item))
 
     return f"""
-<div class="law-item {expandable}" data-source="{esc(source)}" data-status="{esc(status)}" data-category="{esc(category)}">
+<div class="law-item {expandable}" data-source="{esc(source)}" data-status="{esc(status)}" data-category="{esc(category)}" data-search="{search_text}">
   <div class="law-header" onclick="toggleItem(this)">
     <div class="law-tags">
       <span class="tag {st_cls}">{esc(status)}</span>
@@ -455,6 +475,30 @@ def build():
     }}
     .btn-tool:hover{{background:var(--surface-elevated);}}
 
+    /* ── SEARCH ── */
+    .search-box{{
+      display:flex;align-items:center;gap:6px;background:var(--surface-elevated);
+      border:1px solid var(--hairline);border-radius:8px;padding:0 10px;height:32px;
+      flex:1;max-width:320px;min-width:160px;
+    }}
+    .search-icon{{font-size:0.8rem;opacity:0.7;flex-shrink:0;}}
+    .search-input{{
+      background:transparent;border:none;outline:none;color:var(--body-text);
+      font-size:0.82rem;font-family:'Inter',sans-serif;flex:1;min-width:0;
+    }}
+    .search-input::placeholder{{color:var(--muted);}}
+    .search-clear{{
+      background:none;border:none;color:var(--muted);cursor:pointer;
+      font-size:0.78rem;padding:2px 4px;flex-shrink:0;
+    }}
+    .search-clear:hover{{color:var(--body-text);}}
+    .search-status{{
+      padding:6px 24px;font-size:0.78rem;color:var(--muted);background:var(--canvas);
+      border-bottom:1px solid var(--hairline);
+    }}
+    .search-status b{{color:var(--primary-text);}}
+    .week-section.search-empty{{display:none;}}
+
     /* ── FILTER ── */
     .filter-bar{{
       background:var(--canvas);border-bottom:1px solid var(--hairline);
@@ -660,6 +704,9 @@ def build():
       .week-range{{display:none;}}
       .header-right{{display:none;}}
       .card{{margin:0 12px 16px;}}
+      .toolbar{{flex-wrap:wrap;}}
+      .search-box{{max-width:none;width:100%;order:1;}}
+      .toolbar-info{{order:0;}}
     }}
   </style>
 </head>
@@ -684,10 +731,16 @@ def build():
 
 <div class="toolbar">
   <span class="toolbar-info">총 <b>{total_weeks}</b>주차 수록 · 누적 <b>{all_items}</b>건</span>
+  <div class="search-box">
+    <span class="search-icon">🔍</span>
+    <input type="text" id="searchInput" class="search-input" placeholder="키워드 검색 (제목·내용)" oninput="setSearch(this.value)">
+    <button class="search-clear" id="searchClearBtn" onclick="clearSearch()" hidden>✕</button>
+  </div>
   <button class="btn-tool" onclick="expandAll()">모두 펼치기</button>
   <button class="btn-tool" onclick="collapseAll()">이전 주 접기</button>
   <button class="btn-tool btn-copy-all" onclick="copyAllArchive(this)">📋 전체 아카이브 복사</button>
 </div>
+<div class="search-status" id="searchStatus" hidden></div>
 
 <div class="filter-bar">
   <span class="filter-label">연도</span>
@@ -773,16 +826,51 @@ function collapseAll() {{
   }});
 }}
 
-let activeYear='{default_year}', activeSt='all', activeCat='all';
+let activeYear='{default_year}', activeSt='all', activeCat='all', searchQuery='';
 function applyFilter() {{
   document.querySelectorAll('.week-section').forEach(w => {{
     w.classList.toggle('hidden', activeYear!=='all' && w.dataset.year!==activeYear);
+    w.classList.remove('search-empty');
   }});
+  let matchCount = 0;
   document.querySelectorAll('.law-item').forEach(it => {{
     const stHide = activeSt!=='all' && it.dataset.status!==activeSt;
     const catHide = activeCat!=='all' && it.dataset.category!==activeCat;
-    it.classList.toggle('hidden', stHide || catHide);
+    const searchHide = searchQuery!=='' && !(it.dataset.search || '').includes(searchQuery);
+    const hidden = stHide || catHide || searchHide;
+    it.classList.toggle('hidden', hidden);
+    if (!hidden && searchQuery!=='') {{
+      matchCount++;
+      if (it.classList.contains('expandable')) it.classList.add('expanded');
+    }}
   }});
+
+  const statusEl = document.getElementById('searchStatus');
+  if (searchQuery !== '') {{
+    // 검색 중엔 매칭 항목이 있는 주차만 자동으로 펼치고, 없는 주차는 숨겨서
+    // 119주차를 일일이 펼쳐보지 않아도 검색 결과만 바로 보이게 한다.
+    document.querySelectorAll('.week-section:not(.hidden)').forEach(w => {{
+      const hasMatch = w.querySelector('.law-item:not(.hidden)');
+      w.classList.toggle('search-empty', !hasMatch);
+      if (hasMatch) {{
+        w.querySelector('.accordion-btn').classList.add('open');
+        w.querySelector('.week-content').classList.add('open');
+      }}
+    }});
+    statusEl.hidden = false;
+    statusEl.innerHTML = `<b>${{matchCount}}</b>건 검색됨 — "<b>${{searchQuery}}</b>"`;
+  }} else {{
+    statusEl.hidden = true;
+  }}
+}}
+function setSearch(val) {{
+  searchQuery = val.trim().toLowerCase();
+  document.getElementById('searchClearBtn').hidden = searchQuery === '';
+  applyFilter();
+}}
+function clearSearch() {{
+  document.getElementById('searchInput').value = '';
+  setSearch('');
 }}
 function setYear(btn, val) {{
   document.querySelectorAll('.filter-btn[onclick*="setYear"]').forEach(b=>b.classList.remove('active'));
