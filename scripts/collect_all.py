@@ -70,31 +70,50 @@ def main():
     food_items = collect_foodsafety()
 
     all_items = deduplicate(mfds_items + food_items)
+
+    week_info = get_week_info()
+    archive = load_archive()
+
+    # collect_mfds()는 최근 14일(2주) 창을 스캔하므로, 매주 실행되는 이 스크립트가
+    # 지난주에도 이미 수집했던 항목을 이번 주에 또 집어올 수 있다(2026-08-19 발견 —
+    # 같은 URL이 인접한 두 주차에 그대로 중복 저장됨). 이번 주차 자신을 제외한 다른
+    # 모든 주차에 이미 있는 URL은 걸러내 같은 항목이 두 주차에 겹쳐 쌓이지 않게 한다.
+    other_week_urls = {
+        it.get("url")
+        for w in archive["weeks"]
+        if not (w.get("year") == week_info["year"] and w.get("week_num") == week_info["week_num"])
+        for it in w.get("items", [])
+        if it.get("url")
+    }
+    before_cross_dedup = len(all_items)
+    all_items = [it for it in all_items if it.get("url") not in other_week_urls]
+    if before_cross_dedup != len(all_items):
+        print(f"다른 주차와 중복된 {before_cross_dedup - len(all_items)}건 제외")
+
     # 날짜 최신순 정렬
     all_items.sort(key=lambda x: x.get("date", ""), reverse=True)
 
     print(f"\n총 {len(all_items)}건 (중복 제거 후)")
 
-    week_info = get_week_info()
+    n_mfds = sum(1 for i in all_items if i.get("source") == "식약처")
+    n_food = sum(1 for i in all_items if i.get("source") == "식품안전나라")
     week_entry = {
         **week_info,
         "summary": (
             f"{week_info['start_date']} ~ {week_info['end_date']} 기간 "
             f"식품 법령 개정 {len(all_items)}건 수집. "
-            f"식약처 {len(mfds_items)}건 · 식품안전나라 {len(food_items)}건."
+            f"식약처 {n_mfds}건 · 식품안전나라 {n_food}건."
         ),
         "items": all_items,
         "collected_at": datetime.now().isoformat(),
         "counts": {
             "total": len(all_items),
-            "식약처": len(mfds_items),
-            "식품안전나라": len(food_items),
+            "식약처": n_mfds,
+            "식품안전나라": n_food,
             "시행": sum(1 for i in all_items if i.get("status") == "시행"),
             "예고": sum(1 for i in all_items if i.get("status") == "예고"),
         },
     }
-
-    archive = load_archive()
 
     # 같은 연도+주차가 이미 있으면 교체, 없으면 추가
     match = next(
