@@ -1,5 +1,6 @@
 """data/archive.json을 읽어 docs/index.html을 생성합니다."""
 
+import hashlib
 import json
 import os
 import re
@@ -42,6 +43,15 @@ def esc(text):
         .replace(">", "&gt;")
         .replace('"', "&quot;")
     )
+
+
+def item_anchor_id(item):
+    """항목별 고유 앵커 id — health-trend의 "오늘의 요약"이 같은 값으로 계산해
+    #law-xxxxx 딥링크를 만들 수 있도록, url(없으면 title)을 md5 해시해 생성한다.
+    두 프로젝트가 서로 다른 코드베이스이므로 알고리즘(md5 hexdigest 앞 10자)이
+    한쪽만 바뀌면 링크가 깨진다 — 바꿀 때는 health-trend의 동일 함수도 같이 수정."""
+    key = item.get("url") or item.get("title", "")
+    return "law-" + hashlib.md5(key.encode("utf-8")).hexdigest()[:10]
 
 
 def render_key_points(key_points):
@@ -190,9 +200,10 @@ def render_item(item):
     has_body = bool(key_points or impact or related_laws or body_text)
     expandable = "expandable" if has_body else ""
     search_text = esc(build_search_text(item))
+    anchor_id = item_anchor_id(item)
 
     return f"""
-<div class="law-item {expandable}" data-source="{esc(source)}" data-status="{esc(status)}" data-category="{esc(category)}" data-date="{date}" data-search="{search_text}">
+<div class="law-item {expandable}" id="{anchor_id}" data-source="{esc(source)}" data-status="{esc(status)}" data-category="{esc(category)}" data-date="{date}" data-search="{search_text}">
   <div class="law-header" onclick="toggleItem(this)">
     <div class="law-tags">
       <span class="tag {st_cls}">{esc(status)}</span>
@@ -661,6 +672,8 @@ def build():
       border-radius:8px;margin-bottom:7px;overflow:hidden;
     }}
     .law-item.hidden{{display:none;}}
+    @keyframes deepLinkPulse{{0%,100%{{box-shadow:0 0 0 0 rgba(252,213,53,0);}}50%{{box-shadow:0 0 0 4px rgba(252,213,53,.55);}}}}
+    .law-item.deep-link-highlight{{animation:deepLinkPulse 1s ease-in-out 2;border-radius:8px;}}
     .law-header{{padding:11px 14px;cursor:pointer;}}
     .law-item.expandable .law-header:hover{{background:rgba(255,255,255,0.03);}}
     .law-tags{{display:flex;gap:5px;flex-wrap:wrap;align-items:center;margin-bottom:6px;}}
@@ -904,6 +917,7 @@ function applyFilter() {{
     container.innerHTML = matched.length
       ? matched.map(it => {{
           const clone = it.cloneNode(true);
+          clone.removeAttribute('id'); // 원본과 id 중복 방지 — 딥링크는 항상 #weeksMain의 원본을 가리킴
           clone.classList.remove('hidden');
           clone.classList.add('expanded');
           return clone.outerHTML;
@@ -945,6 +959,7 @@ function renderCatDropdown() {{
   const body = matched.length
     ? matched.map(it => {{
         const clone = it.cloneNode(true);
+        clone.removeAttribute('id'); // 원본과 id 중복 방지
         clone.classList.remove('hidden');
         clone.classList.add('expanded');
         return clone.outerHTML;
@@ -994,6 +1009,40 @@ function setCategory(btn, val) {{
   applyFilter();
 }}
 applyFilter();
+
+function handleDeepLink() {{
+  // health-trend "오늘의 요약"의 법령 항목 클릭 등 #law-xxxxx 해시로 들어왔을 때,
+  // 연도 필터·접힌 아코디언에 가려 있어도 그 항목까지 자동으로 펼쳐서 보여준다.
+  const hash = location.hash.slice(1);
+  if (!hash) return;
+  const el = document.getElementById(hash);
+  if (!el || !el.classList.contains('law-item')) return;
+
+  if (activeYear !== 'all') {{
+    activeYear = 'all';
+    document.querySelectorAll('.filter-btn[onclick*="setYear"]').forEach(b => b.classList.remove('active'));
+    document.querySelector(`.filter-btn[onclick="setYear(this,'all')"]`).classList.add('active');
+    applyFilter();
+  }}
+
+  const weekSection = el.closest('.week-section');
+  if (weekSection) {{
+    const btn = weekSection.querySelector('.accordion-btn');
+    const content = weekSection.querySelector('.week-content');
+    if (btn && !btn.classList.contains('open')) {{
+      btn.classList.add('open');
+      content.classList.add('open');
+    }}
+  }}
+  if (el.classList.contains('expandable')) el.classList.add('expanded');
+
+  setTimeout(() => {{
+    el.scrollIntoView({{behavior: 'smooth', block: 'center'}});
+    el.classList.add('deep-link-highlight');
+    setTimeout(() => el.classList.remove('deep-link-highlight'), 2000);
+  }}, 80);
+}}
+handleDeepLink();
 
 async function copyText(btn, text) {{
   try {{
