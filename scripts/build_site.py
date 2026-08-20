@@ -192,7 +192,7 @@ def render_item(item):
     search_text = esc(build_search_text(item))
 
     return f"""
-<div class="law-item {expandable}" data-source="{esc(source)}" data-status="{esc(status)}" data-category="{esc(category)}" data-search="{search_text}">
+<div class="law-item {expandable}" data-source="{esc(source)}" data-status="{esc(status)}" data-category="{esc(category)}" data-date="{date}" data-search="{search_text}">
   <div class="law-header" onclick="toggleItem(this)">
     <div class="law-tags">
       <span class="tag {st_cls}">{esc(status)}</span>
@@ -497,7 +497,6 @@ def build():
       border-bottom:1px solid var(--hairline);
     }}
     .search-status b{{color:var(--primary-text);}}
-    .week-section.search-empty{{display:none;}}
 
     /* ── FILTER ── */
     .filter-bar{{
@@ -506,6 +505,8 @@ def build():
     }}
     .filter-label{{font-size:0.74rem;color:var(--muted);}}
     .filter-sep{{width:1px;height:14px;background:var(--hairline);margin:0 4px;}}
+    .year-filter-group{{display:contents;}}
+    .year-filter-group[hidden]{{display:none;}}
     .filter-btn{{
       background:transparent;border:1px solid var(--hairline);color:var(--muted);
       padding:3px 11px;border-radius:20px;font-size:0.75rem;cursor:pointer;
@@ -741,18 +742,22 @@ def build():
   <button class="btn-tool btn-copy-all" onclick="copyAllArchive(this)">📋 전체 아카이브 복사</button>
 </div>
 <div class="search-status" id="searchStatus" hidden></div>
+<div class="main" id="searchResults" hidden></div>
 
 <div class="filter-bar">
-  <span class="filter-label">연도</span>
-  <button class="filter-btn" onclick="setYear(this,'all')">전체</button>
-  {year_btns_html}
-  <div class="filter-sep"></div>
+  <span id="yearFilterGroup" class="year-filter-group">
+    <span class="filter-label">연도</span>
+    <button class="filter-btn" onclick="setYear(this,'all')">전체</button>
+    {year_btns_html}
+    <div class="filter-sep"></div>
+  </span>
   <span class="filter-label">상태</span>
   <button class="filter-btn active" onclick="setStatus(this,'all')">전체</button>
   <button class="filter-btn" onclick="setStatus(this,'시행')">시행</button>
   <button class="filter-btn" onclick="setStatus(this,'예고')">예고</button>
 </div>
 
+<div id="normalView">
 <div class="kpi-row">
   <div class="kpi">
     <div class="kpi-label">이번 주 수집</div>
@@ -779,6 +784,7 @@ def build():
 <main class="main">
   {weeks_html}
 </main>
+</div>
 
 <textarea id="archive-full-text" style="display:none">{esc(archive_text)}</textarea>
 
@@ -828,52 +834,54 @@ function collapseAll() {{
 
 let activeYear='{default_year}', activeSt='all', activeCat='all', searchQuery='';
 function applyFilter() {{
+  const searching = searchQuery !== '';
+  document.getElementById('normalView').hidden = searching;
+  document.getElementById('searchResults').hidden = !searching;
+  // 검색 결과는 연도와 무관하게 전체에서 찾으므로, 검색 중엔 "선택된 연도"가
+  // 마치 결과에 적용된 것처럼 보이는 연도 필터를 아예 숨긴다(상태 필터는
+  // 검색 결과에도 실제로 적용되므로 그대로 유지).
+  document.getElementById('yearFilterGroup').hidden = searching;
+  const statusEl = document.getElementById('searchStatus');
+
+  if (searching) {{
+    // 검색 중엔 연도별 주차 아코디언을 뒤지지 않고, 검색창 바로 아래에
+    // 매칭 항목만 날짜 내림차순 평면 목록으로 즉시 보여준다(사용자 요청).
+    const matched = Array.from(document.querySelectorAll('#normalView .law-item')).filter(it => {{
+      const stHide = activeSt!=='all' && it.dataset.status!==activeSt;
+      const catHide = activeCat!=='all' && it.dataset.category!==activeCat;
+      const searchHide = !(it.dataset.search || '').includes(searchQuery);
+      return !stHide && !catHide && !searchHide;
+    }});
+    matched.sort((a, b) => (b.dataset.date || '').localeCompare(a.dataset.date || ''));
+
+    const container = document.getElementById('searchResults');
+    container.innerHTML = matched.length
+      ? matched.map(it => {{
+          const clone = it.cloneNode(true);
+          clone.classList.remove('hidden');
+          clone.classList.add('expanded');
+          return clone.outerHTML;
+        }}).join('')
+      : '<p class="no-items" style="padding:24px 4px;">검색 결과가 없습니다.</p>';
+
+    statusEl.hidden = false;
+    statusEl.innerHTML = `<b>${{matched.length}}</b>건 검색됨 — "<b>${{searchQuery}}</b>"`;
+    return;
+  }}
+
+  statusEl.hidden = true;
   document.querySelectorAll('.week-section').forEach(w => {{
     w.classList.toggle('hidden', activeYear!=='all' && w.dataset.year!==activeYear);
-    w.classList.remove('search-empty');
   }});
-  let matchCount = 0;
-  document.querySelectorAll('.law-item').forEach(it => {{
+  document.querySelectorAll('#normalView .law-item').forEach(it => {{
     const stHide = activeSt!=='all' && it.dataset.status!==activeSt;
     const catHide = activeCat!=='all' && it.dataset.category!==activeCat;
-    const searchHide = searchQuery!=='' && !(it.dataset.search || '').includes(searchQuery);
-    const hidden = stHide || catHide || searchHide;
-    it.classList.toggle('hidden', hidden);
-    if (!hidden && searchQuery!=='') {{
-      matchCount++;
-      if (it.classList.contains('expandable')) it.classList.add('expanded');
-    }}
+    it.classList.toggle('hidden', stHide || catHide);
   }});
-
-  const statusEl = document.getElementById('searchStatus');
-  if (searchQuery !== '') {{
-    // 검색 중엔 매칭 항목이 있는 주차만 자동으로 펼치고, 없는 주차는 숨겨서
-    // 119주차를 일일이 펼쳐보지 않아도 검색 결과만 바로 보이게 한다.
-    document.querySelectorAll('.week-section:not(.hidden)').forEach(w => {{
-      const hasMatch = w.querySelector('.law-item:not(.hidden)');
-      w.classList.toggle('search-empty', !hasMatch);
-      if (hasMatch) {{
-        w.querySelector('.accordion-btn').classList.add('open');
-        w.querySelector('.week-content').classList.add('open');
-      }}
-    }});
-    statusEl.hidden = false;
-    statusEl.innerHTML = `<b>${{matchCount}}</b>건 검색됨 — "<b>${{searchQuery}}</b>"`;
-  }} else {{
-    statusEl.hidden = true;
-  }}
 }}
 function setSearch(val) {{
   searchQuery = val.trim().toLowerCase();
   document.getElementById('searchClearBtn').hidden = searchQuery === '';
-  // 검색어가 있는데 연도 필터가 "전체"가 아니면, 필터에 걸려 화면엔 하나도
-  // 안 보이는데 검색 결과 건수만 뜨는 문제(다른 연도 항목이 매칭된 경우)가
-  // 생긴다 — 검색 시작 시 연도 필터를 자동으로 "전체"로 전환한다.
-  if (searchQuery !== '' && activeYear !== 'all') {{
-    activeYear = 'all';
-    document.querySelectorAll('.filter-btn[onclick*="setYear"]').forEach(b => b.classList.remove('active'));
-    document.querySelector(`.filter-btn[onclick="setYear(this,'all')"]`).classList.add('active');
-  }}
   applyFilter();
 }}
 function clearSearch() {{
