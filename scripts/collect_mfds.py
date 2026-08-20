@@ -21,7 +21,7 @@ from datetime import datetime, timedelta
 from urllib.parse import urljoin
 
 sys.path.insert(0, os.path.dirname(__file__))
-from law_type_utils import detect_law_type
+from law_type_utils import detect_law_type, is_food_related
 
 BODY_TEXT_MAX_CHARS = 3000
 
@@ -56,7 +56,7 @@ BOARDS = [
     {"path": "m_203", "default_status": "시행", "default_law_type": None},
     {"path": "m_209", "default_status": "예고", "default_law_type": "행정예고"},
 ]
-FOOD_CATEGORY = "C1002"  # 분야별선택: 식품
+MAX_PAGES = 6  # 안전장치 — cutoff(14일)에 도달 못해도 무한루프 방지
 HEADERS = {
     "User-Agent": (
         "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
@@ -76,11 +76,20 @@ def parse_date(text):
 
 
 def fetch_list_page(board, page=1):
-    """게시판 목록 1페이지 분(보통 10건)을 파싱해 반환. body_text 없이 title/date/url만."""
+    """게시판 목록 1페이지 분(보통 10건)을 파싱해 반환. body_text 없이 title/date/url만.
+
+    2026-08-20: 서버사이드 ?data_stts_gubun=C1002(분야별선택: 식품) 필터를 제거함 —
+    「식품 등의 표시ㆍ광고에 관한 법률 시행규칙」일부개정령(안)(참깨/들깨/아몬드/
+    캐슈너트 알레르기 유발물질 표시대상 추가, 공고 제2026-386호, 2026-08-07)가
+    누락된 걸 발견해 원인 추적한 결과, MFDS 자체 분류상 이 게시물이 C1002로
+    태그되지 않아 필터에 걸려 아예 조회조차 안 되고 있었음. MFDS의 내부 카테고리
+    태깅을 신뢰할 수 없다고 판단해, 이제 전체 분야(의약품/의료기기/화장품 등 포함)를
+    가져온 뒤 law_type_utils.is_food_related()로 우리가 직접 식품 관련성을 판별한다.
+    """
     url = f"https://www.mfds.go.kr/brd/{board['path']}/list.do"
     r = requests.get(
         url,
-        params={"data_stts_gubun": FOOD_CATEGORY, "page": page},
+        params={"page": page},
         headers=HEADERS,
         timeout=15,
     )
@@ -129,16 +138,36 @@ def fetch_list_page(board, page=1):
 
 
 def collect_board(board, cutoff):
+    """cutoff(14일) 안까지 페이지를 넘겨가며 수집.
+
+    전체 분야를 다 가져오면 페이지당 식품 관련 항목 비율이 낮아지므로(의약품·
+    의료기기·화장품 등이 섞임), 1페이지만으로는 14일치를 못 채우는 경우가 생긴다.
+    페이지의 "가장 오래된 항목"(식품 관련 여부와 무관하게 전체 기준)이 cutoff보다
+    오래될 때까지 페이지를 계속 넘긴다 — collect_historical_mfds.py와 동일한 패턴.
+    """
     items = []
     try:
-        parsed = [it for it in fetch_list_page(board, page=1)
-                  if not (it["date_obj"] and it["date_obj"] < cutoff)]
+        page = 1
+        while page <= MAX_PAGES:
+            parsed = fetch_list_page(board, page=page)
+            if not parsed:
+                break
 
-        for it in parsed:
+            relevant = [it for it in parsed
+                        if is_food_related(it["title"])
+                        and not (it["date_obj"] and it["date_obj"] < cutoff)]
+            items.extend(relevant)
+
+            oldest_on_page = min((it["date_obj"] for it in parsed if it["date_obj"]), default=None)
+            if oldest_on_page and oldest_on_page < cutoff:
+                break
+            page += 1
+            time.sleep(0.3)
+
+        for it in items:
             it.pop("date_obj", None)
             it["body_text"] = fetch_detail_body(it["url"])
             time.sleep(0.3)  # 상세페이지 연속 요청 예의상 딜레이
-            items.append(it)
 
         print(f"[식약처:{board['path']}] {len(items)}건 수집")
 

@@ -14,11 +14,19 @@ FOOD_EXCLUDE_TERMS = [
     "의약품", "의료기기", "화장품", "마약류", "첨단바이오", "혈액", "장기등", "인체조직", "체외진단",
 ]
 
+# MFDS 공고 제목은 거의 항상 발신 기관명("...식품의약품안전처공고 제OOOO호")을 인용하는데,
+# 이 기관명 자체에 "의약품"이 부분 문자열로 들어있어 FOOD_EXCLUDE_TERMS의 "의약품"이 오탐된다
+# (2026-08-20 발견: 「식품 등의 표시·광고에 관한 법률 시행규칙」 개정안 — 참깨/들깨/아몬드/
+# 캐슈너트 알레르기 표시대상 추가 — 가 이 오탐으로 통째로 걸러진 채 누락되고 있었음).
+# 판별 전에 기관명 자기인용만 제거해 진짜 "의약품"(의약품 관련 규정) 키워드와 구분한다.
+AGENCY_NAME = "식품의약품안전처"
+
 
 def is_food_related(title: str) -> bool:
-    if any(term in title for term in FOOD_EXCLUDE_TERMS):
+    normalized = title.replace(AGENCY_NAME, "")
+    if any(term in normalized for term in FOOD_EXCLUDE_TERMS):
         return False
-    return any(term in title for term in FOOD_RELEVANT_TERMS)
+    return any(term in normalized for term in FOOD_RELEVANT_TERMS)
 
 
 def detect_law_type(title: str, fallback: str = "고시/훈령") -> str:
