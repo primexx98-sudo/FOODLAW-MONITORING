@@ -258,21 +258,31 @@ def render_week(week, index):
     copy_btn = f'<button class="btn-copy" onclick="copyText(this, \'{esc(weekly_summary)}\')">요약 복사</button>' if weekly_summary else ""
     summary_date = start.replace("-", ".")[:10] if start else ""
 
+    # 2026-08-20: 119주차를 훑어볼 때 어떤 주에 어떤 성격의 항목이 있는지 열어보지
+    # 않고도 짐작할 수 있게, 그 주에 실제 등장한 카테고리만 색점으로 표시한다
+    # (유형별 현황 카드와 동일한 색상 매핑 재사용 — 새 범례를 만들지 않음).
+    present_cats = {it.get("_category") for it in items}
+    cat_dots_html = "".join(
+        f'<span class="week-cat-dot {CATEGORY_META[c]["css"]}" title="{esc(CATEGORY_META[c]["label"])}"></span>'
+        for c in CATEGORY_ORDER if c in present_cats
+    )
+
     return f"""
 <div class="week-section" data-year="{esc(year)}" id="week-{esc(year)}-{esc(week_num)}">
   <button class="accordion-btn {btn_open}" onclick="toggleWeek(this)">
     <div class="week-left">
       <span class="week-num">{esc(year)}년 {esc(week_num)}주차</span>
       <span class="week-range">{esc(start).replace("-", ".")} ~ {esc(end)[5:].replace("-", ".")}</span>
+      <span class="week-cat-dots">{cat_dots_html}</span>
     </div>
     <div class="week-right">
-      {"<span class='badge-latest'>최신</span>" if is_latest else "<span class='badge-prev'>이전</span>"}
+      {"<span class='badge-latest'>최신</span>" if is_latest else ""}
       <span class="week-count">{total}건</span>
       <span class="week-arrow">{"▴" if is_latest else "▾"}</span>
     </div>
   </button>
   <div class="week-content {open_cls}">
-    {"<div class='summary-box'><div class='summary-title'>✦ 이번 주 통합 요약 (" + esc(summary_date) + ")" + "</div><p class='summary-text'>" + esc(weekly_summary) + "</p>" + copy_btn + "</div>" if weekly_summary else ""}
+    {"<div class='summary-box'><div class='summary-title'><span class='summary-badge'>AI 요약</span>이번 주 통합 요약 (" + esc(summary_date) + ")" + "</div><p class='summary-text'>" + esc(weekly_summary) + "</p>" + copy_btn + "</div>" if weekly_summary else ""}
     <div class="groups-wrap">
       {groups_html}
     </div>
@@ -574,12 +584,19 @@ def build():
       display:flex;justify-content:space-between;align-items:center;cursor:pointer;color:var(--body-text);
     }}
     .accordion-btn:hover{{background:var(--surface-elevated);}}
-    .week-left{{display:flex;align-items:center;gap:14px;}}
-    .week-num{{font-size:1rem;font-weight:700;color:var(--primary-text);}}
-    .week-range{{font-size:0.8rem;color:var(--muted);font-family:'JetBrains Mono',monospace;}}
-    .week-right{{display:flex;align-items:center;gap:7px;}}
+    .week-left{{display:flex;align-items:center;gap:14px;min-width:0;}}
+    .week-num{{font-size:1rem;font-weight:700;color:var(--primary-text);flex-shrink:0;}}
+    .week-range{{font-size:0.8rem;color:var(--muted);font-family:'JetBrains Mono',monospace;flex-shrink:0;}}
+    .week-cat-dots{{display:flex;align-items:center;gap:4px;flex-wrap:wrap;}}
+    .week-cat-dot{{width:7px;height:7px;border-radius:50%;flex-shrink:0;}}
+    .week-cat-dot.cat-label{{background:var(--primary);}}
+    .week-cat-dot.cat-spec{{background:var(--info);}}
+    .week-cat-dot.cat-safety{{background:var(--up);}}
+    .week-cat-dot.cat-trade{{background:var(--turquoise);}}
+    .week-cat-dot.cat-biz{{background:var(--muted-strong);}}
+    .week-cat-dot.cat-etc{{background:var(--muted);}}
+    .week-right{{display:flex;align-items:center;gap:7px;flex-shrink:0;}}
     .badge-latest{{background:var(--down);color:#fff;font-size:0.68rem;font-weight:700;padding:2px 6px;border-radius:3px;}}
-    .badge-prev{{background:var(--surface-elevated);color:var(--muted);font-size:0.68rem;padding:2px 6px;border-radius:3px;}}
     .week-count{{background:rgba(252,213,53,.15);color:var(--primary-text);font-size:0.75rem;font-weight:600;padding:2px 8px;border-radius:4px;font-family:'JetBrains Mono',monospace;}}
     .week-arrow{{font-size:0.8rem;color:var(--muted);transition:transform .2s;}}
     .accordion-btn.open .week-arrow{{transform:rotate(180deg);}}
@@ -589,10 +606,18 @@ def build():
     /* ── SUMMARY BOX ── */
     .summary-box{{
       background:var(--surface-elevated);border-bottom:1px solid var(--hairline);
-      padding:14px 18px;
+      border-left:3px solid var(--primary);
+      padding:14px 18px 14px 15px;
     }}
-    .summary-title{{font-size:0.78rem;color:var(--primary-text);font-weight:600;margin-bottom:7px;}}
-    .summary-text{{font-size:0.83rem;color:var(--muted-strong);line-height:1.7;}}
+    .summary-title{{
+      font-size:0.8rem;color:var(--primary-text);font-weight:600;margin-bottom:8px;
+      display:flex;align-items:center;gap:8px;
+    }}
+    .summary-badge{{
+      background:var(--primary);color:#1e2329;font-size:0.65rem;font-weight:700;
+      padding:2px 8px;border-radius:10px;letter-spacing:.2px;
+    }}
+    .summary-text{{font-size:0.87rem;color:var(--body-text);line-height:1.75;}}
     .btn-copy{{
       display:inline-flex;align-items:center;gap:5px;
       margin-top:10px;background:var(--surface);border:1px solid var(--hairline);
