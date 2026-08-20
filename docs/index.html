@@ -147,6 +147,13 @@
     .cat-card-label{font-size:0.76rem;color:var(--muted-strong);font-weight:600;}
     .cat-card-count{font-size:1.15rem;font-weight:700;font-family:'JetBrains Mono',monospace;color:var(--body-text);}
     .cat-card-count small{font-size:0.65rem;font-weight:500;color:var(--muted);margin-left:2px;}
+    .cat-dropdown{
+      background:var(--surface);border:1px solid var(--hairline);border-radius:10px;
+      padding:12px;margin-bottom:14px;
+    }
+    .cat-dropdown-status{font-size:0.78rem;color:var(--muted);padding:2px 2px 10px;}
+    .cat-dropdown-status b{color:var(--primary-text);}
+    .cat-card-count small{font-size:0.65rem;font-weight:500;color:var(--muted);margin-left:2px;}
 
     /* ── LABEL SPOTLIGHT ── */
     .card{background:var(--surface);border:none;border-radius:12px;margin:0 24px 16px;overflow:hidden;}
@@ -396,7 +403,7 @@
 
 
 <div class="cat-overview">
-  <div class="cat-overview-title">유형별 현황 <span class="cat-overview-sub">— 클릭하면 아래 목록이 그 유형만 필터링됩니다</span></div>
+  <div class="cat-overview-title">유형별 현황 <span class="cat-overview-sub">— 클릭하면 바로 아래에 해당 유형 목록이 펼쳐집니다</span></div>
   <div class="cat-grid">
     <button class="cat-card active" data-cat-btn data-cat="all" onclick="setCategory(this,'all')">
       <span class="cat-card-icon">📋</span>
@@ -428,6 +435,7 @@
       <span class="cat-card-count">55<small>건</small></span>
     </button>
   </div>
+  <div class="cat-dropdown" id="catDropdown" hidden></div>
 </div>
 
 
@@ -498,7 +506,7 @@
   </div>
 </div>
 
-<main class="main">
+<main class="main" id="weeksMain">
   
 <div class="week-section" data-year="2026" id="week-2026-34">
   <button class="accordion-btn open" onclick="toggleWeek(this)">
@@ -10124,26 +10132,22 @@ function collapseAll() {
 }
 
 let activeYear='2026', activeSt='all', activeCat='all', searchQuery='';
-function isFiltering() {
-  return searchQuery !== '' || activeCat !== 'all' || activeSt !== 'all';
-}
 function applyFilter() {
-  const filtering = isFiltering();
-  document.getElementById('normalView').hidden = filtering;
-  document.getElementById('searchResults').hidden = !filtering;
-  // 검색/유형/상태 필터 결과는 연도와 무관하게 전체에서 찾으므로, 필터가 걸려
-  // 있는 동안엔 "선택된 연도"가 마치 결과에 적용된 것처럼 보이는 연도 필터를
-  // 숨긴다. 유형별 현황 카드는 #normalView 안에 있어 필터 중엔 함께 숨겨지므로,
-  // 결과 상단에 지금 뭐가 걸려있는지 + 전부 해제하는 버튼을 보여준다.
-  document.getElementById('yearFilterGroup').hidden = filtering;
+  // 검색 중이거나(카테고리 없이) 상태만 걸려있을 땐 결과가 흩어진 주차 전체를
+  // 뒤져야 하므로 검색창 아래 평면 목록으로 전체 화면 전환. 유형(카테고리)이
+  // 선택되면 대신 "유형별 현황" 카드 바로 아래에 드롭다운으로 펼쳐서 KPI·다른
+  // 카드·주차 목록 등 나머지 화면은 그대로 유지한다(사용자 요청).
+  const globalSwap = searchQuery !== '' || (activeCat === 'all' && activeSt !== 'all');
+  document.getElementById('normalView').hidden = globalSwap;
+  document.getElementById('searchResults').hidden = !globalSwap;
+  document.getElementById('yearFilterGroup').hidden = globalSwap;
   const statusEl = document.getElementById('searchStatus');
 
-  if (filtering) {
-    const matched = Array.from(document.querySelectorAll('#normalView .law-item')).filter(it => {
+  if (globalSwap) {
+    const matched = Array.from(document.querySelectorAll('#weeksMain .law-item')).filter(it => {
       const stHide = activeSt!=='all' && it.dataset.status!==activeSt;
-      const catHide = activeCat!=='all' && it.dataset.category!==activeCat;
       const searchHide = searchQuery!=='' && !(it.dataset.search || '').includes(searchQuery);
-      return !stHide && !catHide && !searchHide;
+      return !stHide && !searchHide;
     });
     matched.sort((a, b) => (b.dataset.date || '').localeCompare(a.dataset.date || ''));
 
@@ -10159,10 +10163,6 @@ function applyFilter() {
 
     const chips = [];
     if (searchQuery !== '') chips.push(`"${searchQuery}"`);
-    if (activeCat !== 'all') {
-      const catBtn = document.querySelector(`[data-cat-btn][data-cat="${activeCat}"] .cat-card-label`);
-      if (catBtn) chips.push(catBtn.textContent);
-    }
     if (activeSt !== 'all') chips.push(activeSt);
     const chipText = chips.length ? ' — ' + chips.map(c => `<b>${c}</b>`).join(' · ') : '';
 
@@ -10176,7 +10176,34 @@ function applyFilter() {
   document.querySelectorAll('.week-section').forEach(w => {
     w.classList.toggle('hidden', activeYear!=='all' && w.dataset.year!==activeYear);
   });
-  document.querySelectorAll('#normalView .law-item').forEach(it => it.classList.remove('hidden'));
+  document.querySelectorAll('#weeksMain .law-item').forEach(it => it.classList.remove('hidden'));
+  renderCatDropdown();
+}
+function renderCatDropdown() {
+  const dropdown = document.getElementById('catDropdown');
+  if (activeCat === 'all') {
+    dropdown.hidden = true;
+    dropdown.innerHTML = '';
+    return;
+  }
+  const matched = Array.from(document.querySelectorAll('#weeksMain .law-item')).filter(it => {
+    const stHide = activeSt!=='all' && it.dataset.status!==activeSt;
+    return it.dataset.category === activeCat && !stHide;
+  });
+  matched.sort((a, b) => (b.dataset.date || '').localeCompare(a.dataset.date || ''));
+
+  const statusChip = activeSt !== 'all' ? ` · <b>${activeSt}</b>` : '';
+  const body = matched.length
+    ? matched.map(it => {
+        const clone = it.cloneNode(true);
+        clone.classList.remove('hidden');
+        clone.classList.add('expanded');
+        return clone.outerHTML;
+      }).join('')
+    : '<p class="no-items" style="padding:8px 4px;">조건에 맞는 항목이 없습니다.</p>';
+
+  dropdown.innerHTML = `<div class="cat-dropdown-status"><b>${matched.length}</b>건${statusChip}</div>` + body;
+  dropdown.hidden = false;
 }
 function clearAllFilters() {
   document.getElementById('searchInput').value = '';
@@ -10211,9 +10238,11 @@ function setStatus(btn, val) {
   btn.classList.add('active'); activeSt=val; applyFilter();
 }
 function setCategory(btn, val) {
-  document.querySelectorAll('[data-cat-btn]').forEach(b=>b.classList.remove('active'));
-  btn.classList.add('active'); activeCat=val; applyFilter();
-  document.querySelector('.main').scrollIntoView({behavior:'smooth', block:'start'});
+  // 이미 선택된 카드를 다시 누르면 드롭다운을 닫는다(토글).
+  activeCat = (activeCat === val && val !== 'all') ? 'all' : val;
+  document.querySelectorAll('[data-cat-btn]').forEach(b => b.classList.remove('active'));
+  document.querySelector(`[data-cat-btn][data-cat="${activeCat}"]`).classList.add('active');
+  applyFilter();
 }
 applyFilter();
 
