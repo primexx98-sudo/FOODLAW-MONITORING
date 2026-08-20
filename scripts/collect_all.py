@@ -77,16 +77,25 @@ def main():
     # collect_mfds()는 최근 14일(2주) 창을 스캔하므로, 매주 실행되는 이 스크립트가
     # 지난주에도 이미 수집했던 항목을 이번 주에 또 집어올 수 있다(2026-08-19 발견 —
     # 같은 URL이 인접한 두 주차에 그대로 중복 저장됨). 이번 주차 자신을 제외한 다른
-    # 모든 주차에 이미 있는 URL은 걸러내 같은 항목이 두 주차에 겹쳐 쌓이지 않게 한다.
-    other_week_urls = {
-        it.get("url")
+    # 모든 주차에 이미 있는 제목은 걸러내 같은 항목이 두 주차에 겹쳐 쌓이지 않게 한다.
+    #
+    # 2026-08-20: 키를 url에서 title로 변경 — m_203("법/시행령/시행규칙") 게시판의
+    # 항목들은 MFDS 자체 상세페이지가 아니라 law.go.kr의 "현행 법령 조회" 링크를
+    # 그대로 가리키는데, 이 링크는 법령명 기준 고정 URL이라 같은 법이 여러 차례
+    # 개정될 때마다 서로 다른 개정공포(예: 2023년 총리령 제1868호 vs 2026년 총리령
+    # 제2141호)가 전부 같은 URL을 공유한다. url 기준 dedup은 이런 경우 최신 개정을
+    # "이미 수집된 항목"으로 오판해 통째로 누락시켰음(실제 사례: 축산물 위생관리법
+    # 시행규칙/시행령 2026-08-11 개정 공포 알림 누락). title은 개정 번호·날짜가
+    # 포함돼 있어 서로 다른 개정을 안전하게 구분한다.
+    other_week_titles = {
+        it.get("title", "").strip()
         for w in archive["weeks"]
         if not (w.get("year") == week_info["year"] and w.get("week_num") == week_info["week_num"])
         for it in w.get("items", [])
-        if it.get("url")
+        if it.get("title")
     }
     before_cross_dedup = len(all_items)
-    all_items = [it for it in all_items if it.get("url") not in other_week_urls]
+    all_items = [it for it in all_items if it.get("title", "").strip() not in other_week_titles]
     if before_cross_dedup != len(all_items):
         print(f"다른 주차와 중복된 {before_cross_dedup - len(all_items)}건 제외")
 
