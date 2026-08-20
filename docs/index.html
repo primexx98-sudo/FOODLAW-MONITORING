@@ -92,8 +92,14 @@
     .search-status{
       padding:6px 24px;font-size:0.78rem;color:var(--muted);background:var(--canvas);
       border-bottom:1px solid var(--hairline);
+      display:flex;align-items:center;gap:10px;flex-wrap:wrap;
     }
     .search-status b{color:var(--primary-text);}
+    .status-clear-btn{
+      background:none;border:1px solid var(--hairline);color:var(--muted);
+      padding:2px 9px;border-radius:20px;font-size:0.72rem;cursor:pointer;
+    }
+    .status-clear-btn:hover{background:var(--surface-elevated);color:var(--body-text);}
 
     /* ── FILTER ── */
     .filter-bar{
@@ -353,9 +359,6 @@
   <button class="btn-tool" onclick="collapseAll()">이전 주 접기</button>
   <button class="btn-tool btn-copy-all" onclick="copyAllArchive(this)">📋 전체 아카이브 복사</button>
 </div>
-<div class="search-status" id="searchStatus" hidden></div>
-<div class="main" id="searchResults" hidden></div>
-
 <div class="filter-bar">
   <span id="yearFilterGroup" class="year-filter-group">
     <span class="filter-label">연도</span>
@@ -368,6 +371,8 @@
   <button class="filter-btn" onclick="setStatus(this,'시행')">시행</button>
   <button class="filter-btn" onclick="setStatus(this,'예고')">예고</button>
 </div>
+<div class="search-status" id="searchStatus" hidden></div>
+<div class="main" id="searchResults" hidden></div>
 
 <div id="normalView">
 <div class="kpi-row">
@@ -10119,23 +10124,25 @@ function collapseAll() {
 }
 
 let activeYear='2026', activeSt='all', activeCat='all', searchQuery='';
+function isFiltering() {
+  return searchQuery !== '' || activeCat !== 'all' || activeSt !== 'all';
+}
 function applyFilter() {
-  const searching = searchQuery !== '';
-  document.getElementById('normalView').hidden = searching;
-  document.getElementById('searchResults').hidden = !searching;
-  // 검색 결과는 연도와 무관하게 전체에서 찾으므로, 검색 중엔 "선택된 연도"가
-  // 마치 결과에 적용된 것처럼 보이는 연도 필터를 아예 숨긴다(상태 필터는
-  // 검색 결과에도 실제로 적용되므로 그대로 유지).
-  document.getElementById('yearFilterGroup').hidden = searching;
+  const filtering = isFiltering();
+  document.getElementById('normalView').hidden = filtering;
+  document.getElementById('searchResults').hidden = !filtering;
+  // 검색/유형/상태 필터 결과는 연도와 무관하게 전체에서 찾으므로, 필터가 걸려
+  // 있는 동안엔 "선택된 연도"가 마치 결과에 적용된 것처럼 보이는 연도 필터를
+  // 숨긴다. 유형별 현황 카드는 #normalView 안에 있어 필터 중엔 함께 숨겨지므로,
+  // 결과 상단에 지금 뭐가 걸려있는지 + 전부 해제하는 버튼을 보여준다.
+  document.getElementById('yearFilterGroup').hidden = filtering;
   const statusEl = document.getElementById('searchStatus');
 
-  if (searching) {
-    // 검색 중엔 연도별 주차 아코디언을 뒤지지 않고, 검색창 바로 아래에
-    // 매칭 항목만 날짜 내림차순 평면 목록으로 즉시 보여준다(사용자 요청).
+  if (filtering) {
     const matched = Array.from(document.querySelectorAll('#normalView .law-item')).filter(it => {
       const stHide = activeSt!=='all' && it.dataset.status!==activeSt;
       const catHide = activeCat!=='all' && it.dataset.category!==activeCat;
-      const searchHide = !(it.dataset.search || '').includes(searchQuery);
+      const searchHide = searchQuery!=='' && !(it.dataset.search || '').includes(searchQuery);
       return !stHide && !catHide && !searchHide;
     });
     matched.sort((a, b) => (b.dataset.date || '').localeCompare(a.dataset.date || ''));
@@ -10148,10 +10155,20 @@ function applyFilter() {
           clone.classList.add('expanded');
           return clone.outerHTML;
         }).join('')
-      : '<p class="no-items" style="padding:24px 4px;">검색 결과가 없습니다.</p>';
+      : '<p class="no-items" style="padding:24px 4px;">조건에 맞는 항목이 없습니다.</p>';
+
+    const chips = [];
+    if (searchQuery !== '') chips.push(`"${searchQuery}"`);
+    if (activeCat !== 'all') {
+      const catBtn = document.querySelector(`[data-cat-btn][data-cat="${activeCat}"] .cat-card-label`);
+      if (catBtn) chips.push(catBtn.textContent);
+    }
+    if (activeSt !== 'all') chips.push(activeSt);
+    const chipText = chips.length ? ' — ' + chips.map(c => `<b>${c}</b>`).join(' · ') : '';
 
     statusEl.hidden = false;
-    statusEl.innerHTML = `<b>${matched.length}</b>건 검색됨 — "<b>${searchQuery}</b>"`;
+    statusEl.innerHTML = `<b>${matched.length}</b>건${chipText}` +
+      `<button class="status-clear-btn" onclick="clearAllFilters()">✕ 필터 해제</button>`;
     return;
   }
 
@@ -10159,11 +10176,22 @@ function applyFilter() {
   document.querySelectorAll('.week-section').forEach(w => {
     w.classList.toggle('hidden', activeYear!=='all' && w.dataset.year!==activeYear);
   });
-  document.querySelectorAll('#normalView .law-item').forEach(it => {
-    const stHide = activeSt!=='all' && it.dataset.status!==activeSt;
-    const catHide = activeCat!=='all' && it.dataset.category!==activeCat;
-    it.classList.toggle('hidden', stHide || catHide);
-  });
+  document.querySelectorAll('#normalView .law-item').forEach(it => it.classList.remove('hidden'));
+}
+function clearAllFilters() {
+  document.getElementById('searchInput').value = '';
+  searchQuery = '';
+  document.getElementById('searchClearBtn').hidden = true;
+
+  activeCat = 'all';
+  document.querySelectorAll('[data-cat-btn]').forEach(b => b.classList.remove('active'));
+  document.querySelector('[data-cat-btn][data-cat="all"]').classList.add('active');
+
+  activeSt = 'all';
+  document.querySelectorAll('.filter-btn[onclick*="setStatus"]').forEach(b => b.classList.remove('active'));
+  document.querySelector(`.filter-btn[onclick="setStatus(this,'all')"]`).classList.add('active');
+
+  applyFilter();
 }
 function setSearch(val) {
   searchQuery = val.trim().toLowerCase();
