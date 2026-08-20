@@ -866,6 +866,14 @@ function applyFilter() {{
 function setSearch(val) {{
   searchQuery = val.trim().toLowerCase();
   document.getElementById('searchClearBtn').hidden = searchQuery === '';
+  // 검색어가 있는데 연도 필터가 "전체"가 아니면, 필터에 걸려 화면엔 하나도
+  // 안 보이는데 검색 결과 건수만 뜨는 문제(다른 연도 항목이 매칭된 경우)가
+  // 생긴다 — 검색 시작 시 연도 필터를 자동으로 "전체"로 전환한다.
+  if (searchQuery !== '' && activeYear !== 'all') {{
+    activeYear = 'all';
+    document.querySelectorAll('.filter-btn[onclick*="setYear"]').forEach(b => b.classList.remove('active'));
+    document.querySelector(`.filter-btn[onclick="setYear(this,'all')"]`).classList.add('active');
+  }}
   applyFilter();
 }}
 function clearSearch() {{
