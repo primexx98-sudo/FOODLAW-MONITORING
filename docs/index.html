@@ -331,8 +331,18 @@
       .header-right{display:none;}
       .card{margin:0 12px 16px;}
       .toolbar{flex-wrap:wrap;}
-      .search-box{max-width:none;width:100%;order:1;}
+      /* 2026-08-20: 기존엔 .search-box의 flex:1(=flex-basis:0%)이 width:100%보다
+         우선 적용돼 검색창이 옆 버튼과 한 줄에 끼어 좁아지는 버그가 있었음 —
+         flex-basis를 100%로 명시해 항상 자기 줄 전체를 차지하도록 수정. */
+      .search-box{flex:1 1 100%;max-width:none;min-width:0;order:1;}
       .toolbar-info{order:0;}
+      /* 2026-08-20: "표시사항 변경 추적" 목록이 태그+제목+날짜를 한 줄에 욱여넣어
+         좁은 화면에서 제목이 단어 중간까지 여러 줄로 쪼개지던 문제 — 태그·날짜를
+         위쪽 한 줄로, 제목은 아래에 전체 너비로 분리. */
+      .spotlight-item{flex-wrap:wrap;row-gap:4px;}
+      .spotlight-item .tag{order:0;}
+      .spotlight-meta{order:1;}
+      .spotlight-title{order:2;flex-basis:100%;}
     }
   </style>
 </head>
