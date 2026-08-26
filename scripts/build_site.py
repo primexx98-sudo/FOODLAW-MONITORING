@@ -401,7 +401,7 @@ def render_monthly_summary(months_data):
     </div>""")
     return f"""
 <div class="card monthly-summary">
-  <div class="card-header cat-label-header">🗓️ 월간 통합 요약</div>
+  <div class="card-header monthly-header">🗓️ 월간 통합 요약</div>
   <div class="monthly-summary-body">
     {"".join(rows)}
   </div>
@@ -559,7 +559,8 @@ def build():
     .toolbar-info b{{color:var(--primary-text);}}
     .btn-tool{{
       background:var(--surface);border:1px solid var(--hairline);color:var(--body-text);
-      padding:4px 11px;border-radius:4px;font-size:0.78rem;cursor:pointer;
+      padding:7px 13px;min-height:34px;display:inline-flex;align-items:center;
+      border-radius:4px;font-size:0.78rem;cursor:pointer;
     }}
     .btn-tool:hover{{background:var(--surface-elevated);}}
 
@@ -595,15 +596,18 @@ def build():
     /* ── FILTER ── */
     .filter-bar{{
       background:var(--canvas);border-bottom:1px solid var(--hairline);
-      padding:7px 24px;display:flex;gap:6px;flex-wrap:wrap;align-items:center;
+      padding:8px 24px;display:flex;gap:8px;flex-wrap:wrap;align-items:center;
     }}
     .filter-label{{font-size:0.74rem;color:var(--muted);}}
     .filter-sep{{width:1px;height:14px;background:var(--hairline);margin:0 4px;}}
     .year-filter-group{{display:contents;}}
     .year-filter-group[hidden]{{display:none;}}
+    /* 2026-08-26: 터치 타겟 확대 — 기존 padding 3px 11px(실측 높이 ~20px)는 권장 최소
+       터치 영역에 크게 못 미쳐 모바일에서 오탭 유발. min-height로 바닥선을 보장. */
     .filter-btn{{
       background:transparent;border:1px solid var(--hairline);color:var(--muted);
-      padding:3px 11px;border-radius:20px;font-size:0.75rem;cursor:pointer;
+      padding:7px 14px;min-height:34px;display:inline-flex;align-items:center;
+      border-radius:20px;font-size:0.78rem;cursor:pointer;
     }}
     .filter-btn.active{{background:rgba(252,213,53,.15);border-color:var(--primary);color:var(--primary-text);}}
 
@@ -647,10 +651,16 @@ def build():
     .cat-card-count small{{font-size:0.65rem;font-weight:500;color:var(--muted);margin-left:2px;}}
 
     /* ── LABEL SPOTLIGHT ── */
-    .card{{background:var(--surface);border:none;border-radius:12px;margin:0 24px 16px;overflow:hidden;}}
+    .card{{background:var(--surface);border:none;border-left:3px solid transparent;border-radius:12px;margin:0 24px 16px;overflow:hidden;}}
     .card-header{{background:transparent;color:var(--body-text);border-bottom:1px solid var(--hairline);
       font-weight:700;font-size:0.92rem;padding:12px 16px;}}
+    /* 2026-08-26: 카드 종류별 시각적 차별화 — 표시사항 변경 추적(큐레이션 목록)은
+       노랑, 월간 통합 요약(AI 서술형)은 파랑으로 좌측 스트라이프+헤더 밑줄 색을 분리해
+       스크롤 중에도 헤더 텍스트를 안 읽고 색만으로 구분 가능하게 함. */
     .cat-label-header{{border-bottom-color:var(--primary);}}
+    .label-spotlight{{border-left-color:var(--primary);}}
+    .monthly-header{{border-bottom-color:var(--info);}}
+    .monthly-summary{{border-left-color:var(--info);}}
     .label-spotlight-body{{padding:6px 8px;}}
     .spotlight-item{{
       display:flex;flex-wrap:wrap;align-items:center;gap:4px 10px;padding:8px 8px;border-bottom:1px solid var(--hairline);
@@ -671,7 +681,7 @@ def build():
 
     /* ── WEEK ── */
     .week-section{{
-      background:var(--surface);border:none;
+      background:var(--surface);border:none;border-left:3px solid var(--hairline);
       border-radius:12px;margin-bottom:10px;overflow:hidden;
     }}
     .week-section.hidden{{display:none;}}
@@ -875,7 +885,6 @@ def build():
   </div>
   <div class="header-right">
     <span class="hbadge">식약처</span>
-    <span class="hbadge accent">총 {total_weeks}주차 · {all_items}건 수록</span>
   </div>
 </header>
 
@@ -906,6 +915,8 @@ def build():
 <div class="main" id="searchResults" hidden></div>
 
 <div id="normalView">
+{cat_overview_html}
+
 <div class="kpi-row">
   <div class="kpi">
     <div class="kpi-label">이번 주 수집</div>
@@ -924,8 +935,6 @@ def build():
     <div class="kpi-val">{total_weeks}<span class="kpi-unit">주</span></div>
   </div>
 </div>
-
-{cat_overview_html}
 
 {label_spotlight_html}
 
