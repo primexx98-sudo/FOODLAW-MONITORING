@@ -278,8 +278,12 @@ def render_week(week, index):
         for c in CATEGORY_ORDER if c in present_cats
     )
 
+    # 월간 요약 카드에서 "이 달 항목 보기" 클릭 시 그 달에 속한 주차를 찾기 위한 키.
+    # 한 주차가 월 경계를 넘으면 두 개 이상의 YYYY-MM이 함께 들어감.
+    months_csv = ",".join(sorted({it.get("date", "")[:7] for it in items if it.get("date")}))
+
     return f"""
-<div class="week-section" data-year="{esc(year)}" id="week-{esc(year)}-{esc(week_num)}">
+<div class="week-section" data-year="{esc(year)}" data-months="{esc(months_csv)}" id="week-{esc(year)}-{esc(week_num)}">
   <button class="accordion-btn {btn_open}" onclick="toggleWeek(this)">
     <div class="week-left">
       <span class="week-num">{esc(year)}년 {esc(week_num)}주차</span>
@@ -392,6 +396,7 @@ def render_monthly_summary(months_data):
       <div class="month-content {open_cls}">
         <p class="summary-text">{esc(summary)}</p>
         <button class="btn-copy" onclick="copyText(this, '{esc(summary)}')">요약 복사</button>
+        <button class="btn-copy" onclick="jumpToMonth('{esc(mk)}')">이 달 항목 {count}건 보기 →</button>
       </div>
     </div>""")
     return f"""
@@ -466,8 +471,19 @@ def build():
     except Exception:
         updated_str = datetime.now().strftime("%Y.%m.%d")
 
-    weeks_html = "".join(render_week(w, i) for i, w in enumerate(weeks)) or \
+    # 2026-08-26: 연도가 쌓일수록 index.html이 무한히 커지는 문제 — 최신 연도만
+    # 서버 렌더링으로 인라인하고, 나머지 연도는 별도 조각 파일(archive-weeks.html)로
+    # 분리해 검색/카테고리 필터/과거 연도 선택/딥링크 시에만 클라이언트에서 fetch한다
+    # (JS의 ensureAllYearsLoaded 참고). enumerate의 start를 1로 줘서 과거 연도 주차가
+    # 실수로 index 0(=is_latest)이 되는 일이 없도록 함.
+    latest_year_weeks = [w for w in weeks if w.get("year") == default_year]
+    older_weeks = weeks[len(latest_year_weeks):]
+    weeks_html = "".join(render_week(w, i) for i, w in enumerate(latest_year_weeks)) or \
         '<p class="no-items" style="padding:40px;text-align:center;">아직 데이터가 없습니다.</p>'
+    older_weeks_html = "".join(render_week(w, i) for i, w in enumerate(older_weeks, start=1))
+    os.makedirs(os.path.join(REPO_ROOT, "docs", "data"), exist_ok=True)
+    with open(os.path.join(REPO_ROOT, "docs", "data", "archive-weeks.html"), "w", encoding="utf-8") as f:
+        f.write(older_weeks_html)
 
     cat_overview_html = render_category_overview(category_counts, all_items)
     label_spotlight_html = render_label_spotlight(label_spotlight_items)
@@ -744,6 +760,7 @@ def build():
     .law-item.hidden{{display:none;}}
     @keyframes deepLinkPulse{{0%,100%{{box-shadow:0 0 0 0 rgba(252,213,53,0);}}50%{{box-shadow:0 0 0 4px rgba(252,213,53,.55);}}}}
     .law-item.deep-link-highlight{{animation:deepLinkPulse 1s ease-in-out 2;border-radius:8px;}}
+    .week-section.deep-link-highlight{{animation:deepLinkPulse 1s ease-in-out 2;border-radius:12px;}}
     .law-header{{padding:11px 14px;cursor:pointer;}}
     .law-item.expandable .law-header:hover{{background:rgba(255,255,255,0.03);}}
     .law-tags{{display:flex;gap:5px;flex-wrap:wrap;align-items:center;margin-bottom:6px;}}
@@ -966,6 +983,24 @@ function collapseAll() {{
 }}
 
 let activeYear='{default_year}', activeSt='all', activeCat='all', searchQuery='';
+
+// 2026-08-26: 최신 연도만 인라인 렌더링하고 나머지 연도는 data/archive-weeks.html로
+// 분리했음(build_site.py 참고) — 검색/카테고리 필터/과거 연도 선택/딥링크처럼 전체
+// 기간이 필요한 동작 직전에 이 함수로 한 번만 fetch해서 #weeksMain에 이어붙인다.
+const LATEST_YEAR = '{default_year}';
+let allYearsLoaded = false, allYearsLoadingPromise = null;
+function ensureAllYearsLoaded() {{
+  if (allYearsLoaded) return Promise.resolve();
+  if (allYearsLoadingPromise) return allYearsLoadingPromise;
+  allYearsLoadingPromise = fetch('data/archive-weeks.html')
+    .then(r => r.text())
+    .then(html => {{
+      if (html.trim()) document.getElementById('weeksMain').insertAdjacentHTML('beforeend', html);
+      allYearsLoaded = true;
+    }})
+    .catch(e => console.error('과거 연도 데이터 로드 실패', e));
+  return allYearsLoadingPromise;
+}}
 function applyFilter() {{
   // 검색 중이거나(카테고리 없이) 상태만 걸려있을 땐 결과가 흩어진 주차 전체를
   // 뒤져야 하므로 검색창 아래 평면 목록으로 전체 화면 전환. 유형(카테고리)이
@@ -1056,37 +1091,63 @@ function clearAllFilters() {{
 
   applyFilter();
 }}
-function setSearch(val) {{
+async function setSearch(val) {{
   searchQuery = val.trim().toLowerCase();
   document.getElementById('searchClearBtn').hidden = searchQuery === '';
+  // 검색은 항상 전체 기간 대상이어야 하므로 무조건 나머지 연도부터 확보
+  await ensureAllYearsLoaded();
   applyFilter();
 }}
 function clearSearch() {{
   document.getElementById('searchInput').value = '';
   setSearch('');
 }}
-function setYear(btn, val) {{
+async function setYear(btn, val) {{
   document.querySelectorAll('.filter-btn[onclick*="setYear"]').forEach(b=>b.classList.remove('active'));
-  btn.classList.add('active'); activeYear=val; applyFilter();
+  btn.classList.add('active'); activeYear=val;
+  if (val !== LATEST_YEAR) await ensureAllYearsLoaded();
+  applyFilter();
 }}
 function setStatus(btn, val) {{
   document.querySelectorAll('.filter-btn[onclick*="setStatus"]').forEach(b=>b.classList.remove('active'));
   btn.classList.add('active'); activeSt=val; applyFilter();
 }}
-function setCategory(btn, val) {{
+async function setCategory(btn, val) {{
   // 이미 선택된 카드를 다시 누르면 드롭다운을 닫는다(토글).
   activeCat = (activeCat === val && val !== 'all') ? 'all' : val;
   document.querySelectorAll('[data-cat-btn]').forEach(b => b.classList.remove('active'));
   document.querySelector(`[data-cat-btn][data-cat="${{activeCat}}"]`).classList.add('active');
+  // renderCatDropdown()이 연도와 무관하게 전체 항목을 훑으므로 무조건 확보
+  await ensureAllYearsLoaded();
   applyFilter();
 }}
 applyFilter();
 
-function handleDeepLink() {{
+async function jumpToMonth(mk) {{
+  await ensureAllYearsLoaded();
+  const weekSections = document.querySelectorAll(`.week-section[data-months*="${{mk}}"]`);
+  if (!weekSections.length) return;
+  weekSections.forEach(w => {{
+    const btn = w.querySelector('.accordion-btn');
+    const content = w.querySelector('.week-content');
+    if (btn && !btn.classList.contains('open')) {{
+      btn.classList.add('open');
+      content.classList.add('open');
+    }}
+  }});
+  const first = weekSections[0];
+  first.scrollIntoView({{behavior: 'smooth', block: 'start'}});
+  first.classList.add('deep-link-highlight');
+  setTimeout(() => first.classList.remove('deep-link-highlight'), 2000);
+}}
+
+async function handleDeepLink() {{
   // health-trend "오늘의 요약"의 법령 항목 클릭 등 #law-xxxxx 해시로 들어왔을 때,
   // 연도 필터·접힌 아코디언에 가려 있어도 그 항목까지 자동으로 펼쳐서 보여준다.
+  // 과거 연도 항목일 수도 있으므로 조회 전에 나머지 연도부터 확보.
   const hash = location.hash.slice(1);
   if (!hash) return;
+  await ensureAllYearsLoaded();
   const el = document.getElementById(hash);
   if (!el || !el.classList.contains('law-item')) return;
 

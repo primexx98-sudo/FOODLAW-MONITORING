@@ -49,6 +49,13 @@ _SCAN_CHARS = 1500  # body_text 앞부분만 스캔 — 개정 근거 법령/조
 
 
 def categorize_item(item: dict) -> str:
+    # 키워드 매칭이 오분류했을 때 항목별로 손으로 고칠 수 있는 탈출구.
+    # archive.json의 해당 항목에 "category_override": "안전관리" 식으로 직접 추가하면
+    # 아래 키워드 규칙보다 우선한다. 잘못된 값(오타 등)은 조용히 무시하고 기존 로직으로 폴백.
+    override = item.get("category_override")
+    if override in CATEGORY_META:
+        return override
+
     text = (item.get("title", "") or "") + " " + (item.get("body_text", "") or "")[:_SCAN_CHARS]
     for cat in CATEGORY_ORDER[:-1]:  # '기타' 제외, 순서대로 검사
         if any(kw in text for kw in CATEGORY_KEYWORDS[cat]):
