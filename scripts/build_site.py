@@ -366,9 +366,46 @@ def render_label_spotlight(spotlight_items):
 </div>"""
 
 
+def render_monthly_summary(months_data):
+    """월 단위 AI 통합 요약 카드. 요약 텍스트가 아직 없는 달(요약 배치 처리 대기 중)은
+    건너뛰고, 요약이 있는 달만 최신순으로 아코디언 목록으로 보여준다."""
+    entries = sorted(
+        ((mk, m) for mk, m in months_data.items() if m.get("monthly_summary")),
+        key=lambda kv: kv[0],
+        reverse=True,
+    )
+    if not entries:
+        return ""
+    rows = []
+    for i, (mk, m) in enumerate(entries):
+        label = m.get("label", mk)
+        summary = m.get("monthly_summary", "")
+        count = m.get("item_count", 0)
+        open_cls = "open" if i == 0 else ""
+        rows.append(f"""
+    <div class="month-section">
+      <button class="month-btn {open_cls}" onclick="toggleWeek(this)">
+        <span class="month-label">{esc(label)}</span>
+        <span class="month-count">{count}건</span>
+        <span class="week-arrow">{"▴" if i == 0 else "▾"}</span>
+      </button>
+      <div class="month-content {open_cls}">
+        <p class="summary-text">{esc(summary)}</p>
+        <button class="btn-copy" onclick="copyText(this, '{esc(summary)}')">요약 복사</button>
+      </div>
+    </div>""")
+    return f"""
+<div class="card monthly-summary">
+  <div class="card-header cat-label-header">🗓️ 월간 통합 요약</div>
+  <div class="monthly-summary-body">
+    {"".join(rows)}
+  </div>
+</div>"""
+
+
 def build():
     if not os.path.exists(ARCHIVE_PATH):
-        weeks, total_weeks, last_updated = [], 0, ""
+        weeks, total_weeks, last_updated, months_data = [], 0, "", {}
     else:
         with open(ARCHIVE_PATH, encoding="utf-8") as f:
             archive = json.load(f)
@@ -380,6 +417,9 @@ def build():
         )
         total_weeks = archive.get("total_weeks", len(weeks))
         last_updated = archive.get("last_updated", "")
+        # 월간 요약(AI 생성)은 summarize_items.py가 archive.json["months"]에 미리
+        # 저장해둔 값을 그대로 읽어 보여준다 — build_site.py는 재계산하지 않음.
+        months_data = archive.get("months", {})
 
     # 카테고리는 archive.json에 저장하지 않고 매 빌드마다 순수 함수로 재계산 —
     # 과거 항목에도 즉시 적용되고, 분류 로직을 바꿔도 재수집 없이 바로 반영됨.
@@ -431,6 +471,7 @@ def build():
 
     cat_overview_html = render_category_overview(category_counts, all_items)
     label_spotlight_html = render_label_spotlight(label_spotlight_items)
+    monthly_summary_html = render_monthly_summary(months_data)
 
     html = f"""<!DOCTYPE html>
 <html lang="ko">
@@ -641,6 +682,21 @@ def build():
     .accordion-btn.open .week-arrow{{transform:rotate(180deg);}}
     .week-content{{display:none;border-top:1px solid var(--hairline);}}
     .week-content.open{{display:block;}}
+
+    /* ── MONTHLY SUMMARY ── */
+    .monthly-summary-body{{padding:6px 8px;}}
+    .month-section{{border-bottom:1px solid var(--hairline);}}
+    .month-section:last-child{{border-bottom:none;}}
+    .month-btn{{
+      width:100%;background:none;border:none;padding:10px 10px;
+      display:flex;justify-content:space-between;align-items:center;gap:10px;cursor:pointer;color:var(--body-text);
+    }}
+    .month-btn:hover{{background:var(--surface-elevated);}}
+    .month-label{{font-size:0.92rem;font-weight:700;color:var(--primary-text);}}
+    .month-count{{background:rgba(252,213,53,.15);color:var(--primary-text);font-size:0.72rem;font-weight:600;padding:2px 8px;border-radius:4px;font-family:'JetBrains Mono',monospace;margin-left:auto;}}
+    .month-btn.open .week-arrow{{transform:rotate(180deg);}}
+    .month-content{{display:none;padding:2px 14px 14px;}}
+    .month-content.open{{display:block;}}
 
     /* ── SUMMARY BOX ── */
     .summary-box{{
@@ -855,6 +911,8 @@ def build():
 {cat_overview_html}
 
 {label_spotlight_html}
+
+{monthly_summary_html}
 
 <main class="main" id="weeksMain">
   {weeks_html}

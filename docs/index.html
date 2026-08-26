@@ -208,6 +208,21 @@
     .week-content{display:none;border-top:1px solid var(--hairline);}
     .week-content.open{display:block;}
 
+    /* ── MONTHLY SUMMARY ── */
+    .monthly-summary-body{padding:6px 8px;}
+    .month-section{border-bottom:1px solid var(--hairline);}
+    .month-section:last-child{border-bottom:none;}
+    .month-btn{
+      width:100%;background:none;border:none;padding:10px 10px;
+      display:flex;justify-content:space-between;align-items:center;gap:10px;cursor:pointer;color:var(--body-text);
+    }
+    .month-btn:hover{background:var(--surface-elevated);}
+    .month-label{font-size:0.92rem;font-weight:700;color:var(--primary-text);}
+    .month-count{background:rgba(252,213,53,.15);color:var(--primary-text);font-size:0.72rem;font-weight:600;padding:2px 8px;border-radius:4px;font-family:'JetBrains Mono',monospace;margin-left:auto;}
+    .month-btn.open .week-arrow{transform:rotate(180deg);}
+    .month-content{display:none;padding:2px 14px 14px;}
+    .month-content.open{display:block;}
+
     /* ── SUMMARY BOX ── */
     .summary-box{
       background:var(--surface-elevated);border-bottom:1px solid var(--hairline);
@@ -534,6 +549,8 @@
     </a>
   </div>
 </div>
+
+
 
 <main class="main" id="weeksMain">
   

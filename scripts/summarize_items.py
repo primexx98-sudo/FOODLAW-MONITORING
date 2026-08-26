@@ -160,6 +160,47 @@ def summarize_week(client, week: dict) -> str:
         return ""
 
 
+def month_key_of(date_str: str) -> str:
+    return date_str[:7] if date_str and len(date_str) >= 7 else ""
+
+
+def month_label_of(month_key: str) -> str:
+    if not month_key or "-" not in month_key:
+        return month_key
+    y, m = month_key.split("-")
+    return f"{y}년 {int(m)}월"
+
+
+def summarize_month(client, label: str, items: list) -> str:
+    if not items:
+        return ""
+
+    items_text = "\n".join(
+        f"- [{it.get('status', '')}] {it.get('title', '')} ({it.get('date', '')})"
+        for it in items
+    )
+
+    prompt = f"""당신은 식품산업 법령 분석가입니다.
+{label} 한 달간의 식품 법령 변동 내역을 바탕으로 업계 담당자를 위한 월간 통합 요약문을 작성하세요.
+
+이번 달 변동 항목:
+{items_text}
+
+조건:
+- 4~6문장의 한국어 단락
+- "이번 달 가장 주목할 사항은..." 으로 시작
+- 시행된 사항과 예고된 사항을 구분해 설명
+- 이번 달 전체 흐름(예: 표시기준 개편이 두드러짐 등)을 짚어줄 것
+- 실무 담당자가 이번 달 안에 챙겨야 할 마감(의견제출 등)이 있으면 강조
+- 한국어로만 작성"""
+
+    try:
+        return call_gemini(client, prompt)
+    except Exception as e:
+        print(f"    월간 요약 오류: {e}")
+        return ""
+
+
 def needs_update(item: dict) -> bool:
     if not item.get("key_points"):
         return True
@@ -270,6 +311,43 @@ def main():
         label = week.get("label", "")
         print(f"  [{label}] 주간 요약 생성 중...")
         week["weekly_summary"] = summarize_week(client, week)
+        calls_made += 1
+        time.sleep(CALL_INTERVAL_SEC)
+
+    # 월간 요약 — 모든 주차의 항목을 날짜(item["date"]) 기준 "YYYY-MM"으로 재집계한다
+    # (주차는 월 경계를 넘나들 수 있어 주차 단위가 아니라 항목 날짜 기준으로 묶음).
+    # 이미 저장된 달이라도 그 달에 속한 항목 수가 바뀌었으면(신규 항목 반영·백필 등)
+    # 다시 생성한다 — 주간 요약과 동일한 재생성 조건.
+    month_buckets = {}
+    for week in archive["weeks"]:
+        for item in week.get("items", []):
+            mk = month_key_of(item.get("date", ""))
+            if mk:
+                month_buckets.setdefault(mk, []).append(item)
+
+    months_data = archive.setdefault("months", {})
+    CURRENT_MONTH = datetime.datetime.now().strftime("%Y-%m")
+
+    months_needing_summary = [
+        mk for mk, items in month_buckets.items()
+        if months_data.get(mk, {}).get("item_count") != len(items)
+        or not months_data.get(mk, {}).get("monthly_summary")
+    ]
+    # 이번 달을 과거 백필 달보다 먼저 처리 (주간 요약과 동일한 이유)
+    months_needing_summary.sort(key=lambda mk: (mk != CURRENT_MONTH, mk))
+
+    for mk in months_needing_summary:
+        if calls_made >= DAILY_TOTAL_CAP:
+            print("일일 호출 한도 도달, 월간 요약은 다음 실행에서 처리")
+            break
+        items = month_buckets[mk]
+        label = month_label_of(mk)
+        print(f"  [{label}] 월간 요약 생성 중... ({len(items)}건)")
+        months_data[mk] = {
+            "label": label,
+            "item_count": len(items),
+            "monthly_summary": summarize_month(client, label, items),
+        }
         calls_made += 1
         time.sleep(CALL_INTERVAL_SEC)
 
