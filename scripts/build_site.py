@@ -341,11 +341,20 @@ def render_label_spotlight(spotlight_items):
             has_link = bool(it_url) and not it_url.endswith("/list.do")
             tag_name = "a" if has_link else "div"
             href_attr = f'href="{esc(it_url)}" target="_blank" rel="noopener"' if has_link else ""
+            # 업계 영향(industry_impact) 요약이 있으면 우선 노출, 없으면 핵심 포인트 첫 항목으로 대체
+            summary_text = it.get("industry_impact") or ""
+            if not summary_text:
+                kp = it.get("key_points") or []
+                summary_text = kp[0] if kp else ""
+            summary_html = (
+                f'\n      <span class="spotlight-summary">{esc(summary_text)}</span>'
+                if summary_text else ""
+            )
             rows.append(f"""
     <{tag_name} class="spotlight-item" {href_attr}>
       <span class="tag {st_cls}">{esc(status)}</span>
       <span class="spotlight-title">{esc(it.get('title', ''))}</span>
-      <span class="spotlight-meta">{esc(it.get('date', ''))} · {esc(it.get('_week_label', ''))}</span>
+      <span class="spotlight-meta">{esc(it.get('date', ''))} · {esc(it.get('_week_label', ''))}</span>{summary_html}
     </{tag_name}>""")
         body = "".join(rows)
     return f"""
@@ -587,13 +596,18 @@ def build():
     .cat-label-header{{border-bottom-color:var(--primary);}}
     .label-spotlight-body{{padding:6px 8px;}}
     .spotlight-item{{
-      display:flex;align-items:center;gap:10px;padding:8px 8px;border-bottom:1px solid var(--hairline);
+      display:flex;flex-wrap:wrap;align-items:center;gap:4px 10px;padding:8px 8px;border-bottom:1px solid var(--hairline);
       text-decoration:none;color:var(--body-text);
     }}
     .spotlight-item:last-child{{border-bottom:none;}}
     .spotlight-item:hover{{background:var(--surface-elevated);}}
     .spotlight-title{{flex:1;font-size:0.85rem;line-height:1.4;min-width:0;}}
     .spotlight-meta{{font-size:0.72rem;color:var(--muted);white-space:nowrap;flex-shrink:0;}}
+    /* 건별 요약(업계 영향) — 항상 다음 줄 전체 너비로, 2줄까지만 표시 */
+    .spotlight-summary{{
+      order:3;flex-basis:100%;font-size:0.78rem;line-height:1.5;color:var(--muted);margin-top:2px;
+      display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;
+    }}
 
     /* ── MAIN ── */
     .main{{max-width:860px;margin:0 auto;padding:14px 20px 80px;}}

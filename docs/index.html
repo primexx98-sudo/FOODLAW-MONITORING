@@ -162,13 +162,18 @@
     .cat-label-header{border-bottom-color:var(--primary);}
     .label-spotlight-body{padding:6px 8px;}
     .spotlight-item{
-      display:flex;align-items:center;gap:10px;padding:8px 8px;border-bottom:1px solid var(--hairline);
+      display:flex;flex-wrap:wrap;align-items:center;gap:4px 10px;padding:8px 8px;border-bottom:1px solid var(--hairline);
       text-decoration:none;color:var(--body-text);
     }
     .spotlight-item:last-child{border-bottom:none;}
     .spotlight-item:hover{background:var(--surface-elevated);}
     .spotlight-title{flex:1;font-size:0.85rem;line-height:1.4;min-width:0;}
     .spotlight-meta{font-size:0.72rem;color:var(--muted);white-space:nowrap;flex-shrink:0;}
+    /* 건별 요약(업계 영향) — 항상 다음 줄 전체 너비로, 2줄까지만 표시 */
+    .spotlight-summary{
+      order:3;flex-basis:100%;font-size:0.78rem;line-height:1.5;color:var(--muted);margin-top:2px;
+      display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;
+    }
 
     /* ── MAIN ── */
     .main{max-width:860px;margin:0 auto;padding:14px 20px 80px;}
@@ -459,61 +464,73 @@
       <span class="tag status-notice">예고</span>
       <span class="spotlight-title">「식품 등의 표시ㆍ광고에 관한 법률 시행규칙」 일부개정령(안) 입법예고(식품의약품안전처공고 제2026-386호)</span>
       <span class="spotlight-meta">2026-08-07 · 2026년 34주차</span>
+      <span class="spotlight-summary">식품 제조·가공·수입 업체는 참깨·들깨·아몬드·캐슈너트 원재료 사용 시 알레르기 유발물질 표시를 반영해야 하며, AI 가상 영상 및 전문가 추천 등을 활용한 광고 시 처분 기준이 강화·신설되므로 마케팅 문구 점검이 필요합니다. 본 개정안에 대한 의견제출 마감일은 2026년 9월 17일까지입니다.</span>
     </a>
     <a class="spotlight-item" href="https://www.mfds.go.kr/brd/m_209/view.do?seq=44282&amp;srchFr=&amp;srchTo=&amp;srchWord=&amp;srchTp=&amp;itm_seq_1=0&amp;itm_seq_2=0&amp;multi_itm_seq=0&amp;company_cd=&amp;company_nm=&amp;Data_stts_gubun=C1002&amp;page=1" target="_blank" rel="noopener">
       <span class="tag status-notice">예고</span>
       <span class="spotlight-title">「유전자변형식품등의 표시기준」 일부개정고시(안) 행정예고(식품의약품안전처 공고 제2026-389호, 2026. 8. 5.)</span>
       <span class="spotlight-meta">2026-08-05 · 2026년 33주차</span>
+      <span class="spotlight-summary">당류 및 식용유지류 관련 식품 제조·판매·수입 업체는 유전자변형식품 표시기준 적용 시점이 2026년 12월 31일로 1년 단축됨에 따라 관련 라벨링 및 표시 실무 준비를 앞당겨야 하며, 개정안에 대한 의견 제출 마감일은 2026년 8월 25일까지입니다.</span>
     </a>
     <a class="spotlight-item" href="https://www.mfds.go.kr/brd/m_209/view.do?seq=44274&amp;srchFr=&amp;srchTo=&amp;srchWord=&amp;srchTp=&amp;itm_seq_1=0&amp;itm_seq_2=0&amp;multi_itm_seq=0&amp;company_cd=&amp;company_nm=&amp;Data_stts_gubun=C1002&amp;page=1" target="_blank" rel="noopener">
       <span class="tag status-notice">예고</span>
       <span class="spotlight-title">「건강기능식품에 관한 법률 시행규칙」일부개정령(안) 입법예고(식약처 공고 제2026-338호)</span>
       <span class="spotlight-meta">2026-07-21 · 2026년 30주차</span>
+      <span class="spotlight-summary">건강기능식품 제조업체는 GMP 재가공 기준, 맞춤형 건강기능식품 내포장 표시, 자가품질검사 기록 관리시스템 설치 등 개정되는 실무 기준을 점검하고 준비해야 하며, 개정안에 대한 의견이 있는 경우 2026년 8월 31일까지 제출해야 합니다.</span>
     </a>
     <a class="spotlight-item" href="https://www.mfds.go.kr/brd/m_209/view.do?seq=44263&amp;srchFr=&amp;srchTo=&amp;srchWord=&amp;srchTp=&amp;itm_seq_1=0&amp;itm_seq_2=0&amp;multi_itm_seq=0&amp;company_cd=&amp;company_nm=&amp;Data_stts_gubun=C1002&amp;page=1" target="_blank" rel="noopener">
       <span class="tag status-notice">예고</span>
       <span class="spotlight-title">「건강기능식품의 표시기준」 일부개정고시(안) 행정예고(공고 제2026-314호,  2026.7.1.)</span>
       <span class="spotlight-meta">2026-07-01 · 2026년 27주차</span>
+      <span class="spotlight-summary">건강기능식품 제조·판매 업체는 변경되는 건강기능식품 및 GMP 도안 내용을 확인해야 하며, 개정안에 의견이 있는 경우 2026년 8월 31일까지 의견서를 제출해야 합니다.</span>
     </a>
     <a class="spotlight-item" href="https://www.mfds.go.kr/brd/m_209/view.do?seq=44257&amp;srchFr=&amp;srchTo=&amp;srchWord=&amp;srchTp=&amp;itm_seq_1=0&amp;itm_seq_2=0&amp;multi_itm_seq=0&amp;company_cd=&amp;company_nm=&amp;Data_stts_gubun=C1002&amp;page=2" target="_blank" rel="noopener">
       <span class="tag status-notice">예고</span>
       <span class="spotlight-title">식품등의 표시기준 일부개정고시(안) 행정예고 알림(식품의약품안전처 공고 제2026-296호)</span>
       <span class="spotlight-meta">2026-06-22 · 2026년 26주차</span>
+      <span class="spotlight-summary">식품 제조·수입·유통업체는 향후 확정될 표시기준 변경사항에 맞춰 제품 포장재(라벨)의 수정 및 교체 준비가 필요할 수 있습니다.</span>
     </a>
     <a class="spotlight-item" href="https://www.mfds.go.kr/brd/m_209/view.do?seq=44217&amp;srchFr=&amp;srchTo=&amp;srchWord=&amp;srchTp=&amp;itm_seq_1=0&amp;itm_seq_2=0&amp;multi_itm_seq=0&amp;company_cd=&amp;company_nm=&amp;Data_stts_gubun=C1002&amp;page=3" target="_blank" rel="noopener">
       <span class="tag status-notice">예고</span>
       <span class="spotlight-title">「유전자변형식품등의 표시기준」 일부개정고시(안) 행정예고(식약처 공고 제2026-114호, 2026.2.27)</span>
       <span class="spotlight-meta">2026-02-27 · 2026년 9주차</span>
+      <span class="spotlight-summary">유전자변형 원재료를 사용하거나 관련 식품을 제조·수입·판매하는 업체는 향후 확정될 개정 기준에 맞추어 포장지 표시 사항 수정 및 관리 절차 재검토가 필요할 수 있습니다.</span>
     </a>
     <a class="spotlight-item" href="https://www.mfds.go.kr/brd/m_209/view.do?seq=44194&amp;srchFr=&amp;srchTo=&amp;srchWord=&amp;srchTp=&amp;itm_seq_1=0&amp;itm_seq_2=0&amp;multi_itm_seq=0&amp;company_cd=&amp;company_nm=&amp;Data_stts_gubun=C1002&amp;page=4" target="_blank" rel="noopener">
       <span class="tag status-notice">예고</span>
       <span class="spotlight-title">건강기능식품의 기준 및 규격 일부개정고시(안) 행정예고(식약처 공고 제2025-524호)</span>
       <span class="spotlight-meta">2025-12-23 · 2025년 52주차</span>
+      <span class="spotlight-summary">키토올리고당의 기능성 추가로 관련 건강기능식품 제품 생산 및 출시 활성화가 기대되며, 개선된 영양성분 및 유산균수 시험법에 맞춘 정확한 품질 및 분석 관리가 요구됩니다. 본 개정안에 대한 의견은 2026년 2월 23일까지 제출할 수 있습니다.</span>
     </a>
     <a class="spotlight-item" href="https://www.mfds.go.kr/brd/m_209/view.do?seq=44193&amp;srchFr=&amp;srchTo=&amp;srchWord=&amp;srchTp=&amp;itm_seq_1=0&amp;itm_seq_2=0&amp;multi_itm_seq=0&amp;company_cd=&amp;company_nm=&amp;Data_stts_gubun=C1002&amp;page=4" target="_blank" rel="noopener">
       <span class="tag status-notice">예고</span>
       <span class="spotlight-title">식품의 기준 및 규격 일부개정고시(안) 행정예고(식약처 공고 제2025-523호)</span>
       <span class="spotlight-meta">2025-12-23 · 2025년 52주차</span>
+      <span class="spotlight-summary">비살균 액란을 원료로 사용하는 식품 제조업체는 가열살균·멸균 공정을 준수해야 하며, 특수의료용도식품 제조 업체 및 농약 관련 농산물 유통·수입 업체는 신설·개정된 영양성분 및 잔류허용기준에 대한 준비가 필요하며 개정안에 대한 의견은 2026년 2월 23일까지 제출할 수 있습니다.</span>
     </a>
     <a class="spotlight-item" href="https://www.mfds.go.kr/brd/m_209/view.do?seq=44187&amp;srchFr=&amp;srchTo=&amp;srchWord=&amp;srchTp=&amp;itm_seq_1=0&amp;itm_seq_2=0&amp;multi_itm_seq=0&amp;company_cd=&amp;company_nm=&amp;Data_stts_gubun=C1002&amp;page=4" target="_blank" rel="noopener">
       <span class="tag status-notice">예고</span>
       <span class="spotlight-title">「어린이 기호식품 품질인증기준」 일부개정고시안 행정예고(제2025-491호)</span>
       <span class="spotlight-meta">2025-12-05 · 2025년 49주차</span>
+      <span class="spotlight-summary">어린이 기호식품 품질인증을 신청하거나 유지하려는 제조·판매 업체는 당알코올 사용량을 10% 미만으로 관리해야 하며 모범업소 대신 위생등급제 기준을 적용받게 됩니다. 해당 개정안에 대해 의견이 있는 경우 2025년 12월 26일까지 식약처에 의견서를 제출해야 합니다.</span>
     </a>
     <a class="spotlight-item" href="https://www.mfds.go.kr/brd/m_209/view.do?seq=44179&amp;srchFr=&amp;srchTo=&amp;srchWord=&amp;srchTp=&amp;itm_seq_1=0&amp;itm_seq_2=0&amp;multi_itm_seq=0&amp;company_cd=&amp;company_nm=&amp;Data_stts_gubun=C1002&amp;page=4" target="_blank" rel="noopener">
       <span class="tag status-notice">예고</span>
       <span class="spotlight-title">「수입식품안전관리 특별법 시행규칙」일부개정령(안) 입법예고(공고 제2025-460호)</span>
       <span class="spotlight-meta">2025-11-17 · 2025년 47주차</span>
+      <span class="spotlight-summary">창업보육센터의 영업 사무소 활용 및 경미한 표시위반 검사 완화로 영업자 부담이 줄어드는 한편, 인터넷 구매대행업자의 광고 안내문구 게시와 공유 사무실 이용자의 시설사용계약서 제출 등 신규 의무가 발생하므로 관련 수입·구매대행 업체는 2025년 12월 29일까지 의견을 제출하거나 미리 실무 절차를 점검해야 합니다.</span>
     </a>
     <a class="spotlight-item" href="https://www.mfds.go.kr/brd/m_209/view.do?seq=44173&amp;srchFr=&amp;srchTo=&amp;srchWord=&amp;srchTp=&amp;itm_seq_1=0&amp;itm_seq_2=0&amp;multi_itm_seq=0&amp;company_cd=&amp;company_nm=&amp;Data_stts_gubun=C1002&amp;page=5" target="_blank" rel="noopener">
       <span class="tag status-notice">예고</span>
       <span class="spotlight-title">「식품등의 표시기준」 일부개정고시(안) 행정예고(공고 제2025-448호, 2025.11.6.)</span>
       <span class="spotlight-meta">2025-11-06 · 2025년 45주차</span>
+      <span class="spotlight-summary">커피 제조·수입 업체는 원두 잔류카페인 함량 기준에 맞춰 디카페인 표시를 정비해야 하고, 주류협업제품 관련 업체는 주표시면의 주류 표시 강화 규정을 반영해야 하며 2026년 1월 6일까지 의견 제출이 가능합니다.</span>
     </a>
     <a class="spotlight-item" href="https://www.mfds.go.kr/brd/m_209/view.do?seq=44160&amp;srchFr=&amp;srchTo=&amp;srchWord=&amp;srchTp=&amp;itm_seq_1=0&amp;itm_seq_2=0&amp;multi_itm_seq=0&amp;company_cd=&amp;company_nm=&amp;Data_stts_gubun=C1002&amp;page=5" target="_blank" rel="noopener">
       <span class="tag status-notice">예고</span>
       <span class="spotlight-title">「나트륨·당류 저감 표시기준」 일부개정고시(안) 행정예고(식품의약품안전처 공고 제2025-401호)</span>
       <span class="spotlight-meta">2025-09-25 · 2025년 39주차</span>
+      <span class="spotlight-summary">본문에는 구체적인 개정 내용 및 의견제출 마감일이 명시되어 있지 않으나, 나트륨·당류 저감 표시기준 개정에 대한 의견 수렴이 진행 중이므로 향후 발표되는 세부 개정 사항에 대한 모니터링이 필요합니다.</span>
     </a>
   </div>
 </div>
