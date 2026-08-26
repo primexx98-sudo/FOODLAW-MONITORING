@@ -305,40 +305,37 @@ def render_week(week, index):
 </div>"""
 
 
-def render_category_overview(category_counts, total_items):
-    cards = [
-        f'''<button class="cat-card active" data-cat-btn data-cat="all" onclick="setCategory(this,'all')">
-      <span class="cat-card-icon">📋</span>
-      <span class="cat-card-label">전체</span>
-      <span class="cat-card-count">{total_items}<small>건</small></span>
+def render_category_nav(category_counts, total_items):
+    """사이드바의 '유형' nav-group 안에 들어갈 항목들. 2026-08-26 리뉴얼 전엔 그리드
+    카드였으나, 사이드바 세로 목록으로 옮기면서 다른 nav-item(연도/상태)과 동일한
+    부품을 재사용하도록 통일했다 — data-cat-btn 속성은 JS(setCategory/renderCatDropdown)가
+    클래스가 아니라 속성으로 조회하므로 그대로 유지."""
+    items = [
+        f'''<button class="nav-item active" data-cat-btn data-cat="all" onclick="setCategory(this,'all')">
+      <span>전체</span><span class="nav-item-count">{total_items}</span>
     </button>'''
     ]
     for cat in CATEGORY_ORDER:
         meta = CATEGORY_META[cat]
         count = category_counts.get(cat, 0)
-        highlight = " cat-card-priority" if cat == LABEL_SPOTLIGHT_CATEGORY else ""
-        cards.append(f'''<button class="cat-card {meta["css"]}{highlight}" data-cat-btn data-cat="{cat}" onclick="setCategory(this,'{cat}')">
-      <span class="cat-card-icon">{meta["icon"]}</span>
-      <span class="cat-card-label">{esc(meta["label"])}</span>
-      <span class="cat-card-count">{count}<small>건</small></span>
+        priority = " nav-item-priority" if cat == LABEL_SPOTLIGHT_CATEGORY else ""
+        items.append(f'''<button class="nav-item{priority}" data-cat-btn data-cat="{cat}" onclick="setCategory(this,'{cat}')">
+      <span>{meta["icon"]} {esc(meta["label"])}</span><span class="nav-item-count">{count}</span>
     </button>''')
-    return f"""
-<div class="cat-overview">
-  <div class="cat-overview-title">유형별 현황 <span class="cat-overview-sub">— 클릭하면 바로 아래에 해당 유형 목록이 펼쳐집니다</span></div>
-  <div class="cat-grid">
-    {"".join(cards)}
-  </div>
-  <div class="cat-dropdown" id="catDropdown" hidden></div>
-</div>"""
+    return "".join(items)
+
+
+SPOTLIGHT_VISIBLE_LIMIT = 5
 
 
 def render_label_spotlight(spotlight_items):
     meta = CATEGORY_META[LABEL_SPOTLIGHT_CATEGORY]
     if not spotlight_items:
         body = '<p class="no-items">아직 표시사항 변경 항목이 수집되지 않았습니다.</p>'
+        more_btn = ""
     else:
         rows = []
-        for it in spotlight_items:
+        for i, it in enumerate(spotlight_items):
             status = it.get("status", "")
             st_cls = STATUS_COLORS.get(status, "status-info")
             it_url = it.get("url", "")
@@ -354,19 +351,31 @@ def render_label_spotlight(spotlight_items):
                 f'\n      <span class="spotlight-summary">{esc(summary_text)}</span>'
                 if summary_text else ""
             )
+            # 2026-08-26: 항목 12건을 전부 펼쳐두면 카드 하나가 화면을 너무 많이
+            # 차지해서(사용자 피드백), 처음 5건만 보이고 나머지는 "더보기" 클릭 시
+            # 펼치는 방식으로 축소. hidden 항목도 검색/필터 대상 텍스트는 아니므로
+            # (표시사항 변경 추적은 별도 검색 대상이 아님, law-item과 다름) 안전.
+            extra_cls = " spotlight-extra" if i >= SPOTLIGHT_VISIBLE_LIMIT else ""
+            extra_attr = " hidden" if i >= SPOTLIGHT_VISIBLE_LIMIT else ""
             rows.append(f"""
-    <{tag_name} class="spotlight-item" {href_attr}>
+    <{tag_name} class="spotlight-item{extra_cls}"{extra_attr} {href_attr}>
       <span class="tag {st_cls}">{esc(status)}</span>
       <span class="spotlight-title">{esc(it.get('title', ''))}</span>
       <span class="spotlight-meta">{esc(it.get('date', ''))} · {esc(it.get('_week_label', ''))}</span>{summary_html}
     </{tag_name}>""")
         body = "".join(rows)
+        remaining = len(spotlight_items) - SPOTLIGHT_VISIBLE_LIMIT
+        more_btn = (
+            f'<button class="spotlight-more-btn" onclick="toggleSpotlightMore(this)">나머지 {remaining}건 더보기 ↓</button>'
+            if remaining > 0 else ""
+        )
     return f"""
 <div class="card label-spotlight">
   <div class="card-header cat-label-header">{meta["icon"]} 표시사항 변경 추적 — 최근 {len(spotlight_items)}건</div>
   <div class="label-spotlight-body">
     {body}
   </div>
+  {more_btn}
 </div>"""
 
 
@@ -448,7 +457,7 @@ def build():
     years = sorted({w.get("year") for w in weeks if w.get("year")}, reverse=True)
     default_year = years[0] if years else ""
     year_btns_html = "".join(
-        f'<button class="filter-btn{" active" if y == default_year else ""}" onclick="setYear(this,\'{y}\')">{y}년</button>'
+        f'<button class="nav-item{" active" if y == default_year else ""}" onclick="setYear(this,\'{y}\')">{y}년</button>'
         for y in years
     )
 
@@ -485,7 +494,7 @@ def build():
     with open(os.path.join(REPO_ROOT, "docs", "data", "archive-weeks.html"), "w", encoding="utf-8") as f:
         f.write(older_weeks_html)
 
-    cat_overview_html = render_category_overview(category_counts, all_items)
+    cat_nav_html = render_category_nav(category_counts, all_items)
     label_spotlight_html = render_label_spotlight(label_spotlight_items)
     monthly_summary_html = render_monthly_summary(months_data)
 
@@ -509,54 +518,61 @@ def build():
   </script>
   <style>
     *,*::before,*::after{{box-sizing:border-box;margin:0;padding:0}}
-    /* 2026-08-19: 트렌드 대시보드(health-trend)와 동일한 Binance 다크테마 토큰으로 통일
-       — 두 대시보드가 허브(food-monitor-hub) 안에서 서로 다른 룩앤필이던 문제 해소 */
+    /* 2026-08-26: 전면 리뉴얼 — 다크+옐로(Binance) 기본 정체성에서 라이트+인디고
+       (Stripe 계열) 기본 정체성으로 전환. 라이트가 기본(bare :root)이고 다크는
+       [data-theme="dark"] 오버라이드 — 예전과 정반대 구조이므로 테마 토글 JS도
+       "기본값 = 다크"였던 가정을 "기본값 = 라이트"로 맞춰 함께 수정했음(아래 <script> 참고). */
     :root{{
-      --canvas:#0b0e11;--surface:#1e2329;--surface-elevated:#2b3139;
-      --hairline:#2b3139;--body-text:#eaecef;--muted:#707a8a;--muted-strong:#929aa5;
-      --primary:#fcd535;--primary-text:#fcd535;--primary-active:#f0b90b;
-      --up:#0ecb81;--down:#f6465d;--info:#3b82f6;--turquoise:#2dbdb6;
-    }}
-    :root[data-theme="light"]{{
-      --canvas:#f7f8fa;--surface:#ffffff;--surface-elevated:#f0f2f5;
-      --hairline:#e6e8eb;--body-text:#1e2329;--muted:#76808f;--muted-strong:#4b5563;
-      --primary:#fcd535;--primary-text:#9a7300;--primary-active:#b8860b;
+      --canvas:#ffffff;--surface:#f6f7fb;--surface-elevated:#eef0f7;
+      --hairline:#e3e8ee;--body-text:#0d253d;--muted:#8695ab;--muted-strong:#425466;
+      --primary:#5046e5;--primary-text:#5046e5;--primary-active:#3f37c9;
       --up:#0a9f68;--down:#d63447;--info:#2563eb;--turquoise:#0f8f88;
+    }}
+    :root[data-theme="dark"]{{
+      --canvas:#0b0e14;--surface:#161a22;--surface-elevated:#1f2430;
+      --hairline:#262c38;--body-text:#eef1f7;--muted:#7c8494;--muted-strong:#b9c0cf;
+      --primary:#7c74f5;--primary-text:#7c74f5;--primary-active:#948dfd;
+      --up:#0ecb81;--down:#f6465d;--info:#3b82f6;--turquoise:#2dbdb6;
     }}
     body{{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI','Apple SD Gothic Neo','Noto Sans KR',sans-serif;
       background:var(--canvas);color:var(--body-text);font-size:14px;line-height:1.65;}}
     .mono{{font-family:'JetBrains Mono',monospace;}}
 
-    /* ── HEADER ── */
-    .site-header{{
-      background:var(--canvas);border-bottom:1px solid var(--hairline);
-      padding:14px 24px 12px;
-      display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:10px;
+    /* ── SHELL (2026-08-26 리뉴얼: 사이드바 내비게이션형) ── */
+    .shell{{display:flex;align-items:flex-start;min-height:100vh;}}
+    .sidebar{{
+      width:216px;flex-shrink:0;background:var(--surface);border-right:1px solid var(--hairline);
+      padding:20px 14px;position:sticky;top:0;height:100vh;overflow-y:auto;
     }}
-    .header-left{{display:flex;flex-direction:column;gap:2px;}}
-    .header-left h1{{font-size:1.15rem;font-weight:700;color:var(--body-text);letter-spacing:-.3px;}}
-    .header-left h1 svg{{vertical-align:middle;margin-right:6px;color:var(--primary-text);}}
-    .header-left p{{font-size:0.75rem;color:var(--muted);margin-top:3px;}}
-    .header-titlerow{{display:flex;align-items:center;gap:8px;}}
-    .header-right{{display:flex;gap:6px;flex-wrap:wrap;align-items:center;}}
-    .hbadge{{background:var(--surface-elevated);border:1px solid var(--hairline);
-      border-radius:4px;padding:3px 9px;font-size:0.72rem;color:var(--muted-strong);}}
-    .hbadge.accent{{background:rgba(252,213,53,.12);color:var(--primary-text);border-color:rgba(252,213,53,.35);}}
+    .sidebar-brand{{display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;padding:0 6px;}}
+    .sidebar-brand h1{{font-size:0.98rem;font-weight:700;color:var(--body-text);letter-spacing:-.2px;display:flex;align-items:center;gap:6px;}}
+    .sidebar-brand h1 svg{{color:var(--primary-text);flex-shrink:0;}}
+    .sidebar-sub{{font-size:0.7rem;color:var(--muted);padding:0 6px;margin-bottom:20px;line-height:1.5;}}
     .theme-toggle{{
       background:var(--surface-elevated);border:1px solid var(--hairline);
-      color:var(--body-text);height:26px;padding:0 10px;border-radius:13px;cursor:pointer;
-      display:inline-flex;align-items:center;gap:5px;justify-content:center;
-      font-size:0.72rem;font-weight:600;flex-shrink:0;line-height:1;white-space:nowrap;
+      color:var(--body-text);width:26px;height:26px;border-radius:13px;cursor:pointer;
+      display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;font-size:0.8rem;
     }}
     .theme-toggle:hover{{background:var(--hairline);}}
+    .nav-group{{margin-bottom:18px;}}
+    .nav-group-label{{font-size:0.68rem;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;font-weight:600;padding:0 8px;margin-bottom:5px;}}
+    .nav-item{{
+      display:flex;align-items:center;justify-content:space-between;width:100%;text-align:left;
+      background:none;border:none;padding:8px 8px;border-radius:6px;font-size:0.8rem;color:var(--muted-strong);
+      cursor:pointer;font-family:inherit;min-height:34px;
+    }}
+    .nav-item:hover{{background:var(--surface-elevated);}}
+    .nav-item.active{{background:rgba(80,70,229,.1);color:var(--primary-text);font-weight:700;}}
+    .nav-item-count{{font-family:'JetBrains Mono',monospace;font-size:0.7rem;color:var(--muted);flex-shrink:0;}}
+    .nav-item.active .nav-item-count{{color:var(--primary-text);}}
+    .nav-item-priority{{box-shadow:inset 2px 0 0 rgba(80,70,229,.35);}}
 
-    /* ── TOOLBAR ── */
+    /* ── MAIN COLUMN ── */
+    .main-col{{flex:1;min-width:0;}}
     .toolbar{{
       background:var(--canvas);border-bottom:1px solid var(--hairline);
-      padding:7px 24px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;
+      padding:14px 24px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;
     }}
-    .toolbar-info{{font-size:0.8rem;color:var(--muted);flex:1;}}
-    .toolbar-info b{{color:var(--primary-text);}}
     .btn-tool{{
       background:var(--surface);border:1px solid var(--hairline);color:var(--body-text);
       padding:7px 13px;min-height:34px;display:inline-flex;align-items:center;
@@ -593,62 +609,22 @@ def build():
     }}
     .status-clear-btn:hover{{background:var(--surface-elevated);color:var(--body-text);}}
 
-    /* ── FILTER ── */
-    .filter-bar{{
-      background:var(--canvas);border-bottom:1px solid var(--hairline);
-      padding:8px 24px;display:flex;gap:8px;flex-wrap:wrap;align-items:center;
+    /* ── STAT STRIP (2026-08-26: KPI 박스 4개 → 본문 상단 한 줄 통계로 축소,
+       필터는 전부 사이드바로 옮겼으므로 이 자리엔 "현재 뭘 보고 있는지" 요약만 남김) ── */
+    .stat-strip{{
+      display:flex;align-items:center;gap:14px;flex-wrap:wrap;font-size:0.8rem;color:var(--muted-strong);
+      padding:16px 24px;border-bottom:1px solid var(--hairline);
     }}
-    .filter-label{{font-size:0.74rem;color:var(--muted);}}
-    .filter-sep{{width:1px;height:14px;background:var(--hairline);margin:0 4px;}}
-    .year-filter-group{{display:contents;}}
-    .year-filter-group[hidden]{{display:none;}}
-    /* 2026-08-26: 터치 타겟 확대 — 기존 padding 3px 11px(실측 높이 ~20px)는 권장 최소
-       터치 영역에 크게 못 미쳐 모바일에서 오탭 유발. min-height로 바닥선을 보장. */
-    .filter-btn{{
-      background:transparent;border:1px solid var(--hairline);color:var(--muted);
-      padding:7px 14px;min-height:34px;display:inline-flex;align-items:center;
-      border-radius:20px;font-size:0.78rem;cursor:pointer;
-    }}
-    .filter-btn.active{{background:rgba(252,213,53,.15);border-color:var(--primary);color:var(--primary-text);}}
+    .stat-strip b{{font-family:'JetBrains Mono',monospace;font-size:0.95rem;color:var(--body-text);font-weight:700;}}
+    .stat-strip .stat-dot{{width:3px;height:3px;border-radius:50%;background:var(--muted);flex-shrink:0;}}
 
-    /* ── KPI ── */
-    .kpi-row{{
-      display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));
-      gap:8px;padding:14px 24px;background:var(--canvas);border-bottom:1px solid var(--hairline);
-    }}
-    .kpi{{background:var(--surface);border:none;border-radius:12px;
-      padding:12px 15px;border-left:3px solid var(--primary);}}
-    .kpi.blue{{border-left-color:var(--info);}}
-    .kpi.orange{{border-left-color:var(--primary);}}
-    .kpi.red{{border-left-color:var(--down);}}
-    .kpi-label{{font-size:0.72rem;color:var(--muted);margin-bottom:4px;}}
-    .kpi-val{{font-size:1.35rem;font-weight:700;font-family:'JetBrains Mono',monospace;}}
-    .kpi-unit{{font-size:0.7rem;color:var(--muted);}}
-
-    /* ── CATEGORY OVERVIEW ── */
-    .cat-overview{{padding:16px 24px 4px;background:var(--canvas);}}
-    .cat-overview-title{{font-size:0.85rem;font-weight:700;color:var(--body-text);margin-bottom:10px;}}
-    .cat-overview-sub{{font-weight:400;color:var(--muted);font-size:0.76rem;}}
-    .cat-grid{{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px;margin-bottom:14px;}}
-    .cat-card{{
-      background:var(--surface);border:1px solid var(--hairline);border-radius:10px;
-      padding:10px 12px;cursor:pointer;text-align:left;display:flex;flex-direction:column;gap:4px;
-      color:var(--body-text);transition:border-color .15s;
-    }}
-    .cat-card:hover{{border-color:var(--muted-strong);}}
-    .cat-card.active{{border-color:var(--primary);box-shadow:0 0 0 1px var(--primary) inset;}}
-    .cat-card-priority{{border-color:rgba(252,213,53,.4);}}
-    .cat-card-icon{{font-size:1.1rem;}}
-    .cat-card-label{{font-size:0.76rem;color:var(--muted-strong);font-weight:600;}}
-    .cat-card-count{{font-size:1.15rem;font-weight:700;font-family:'JetBrains Mono',monospace;color:var(--body-text);}}
-    .cat-card-count small{{font-size:0.65rem;font-weight:500;color:var(--muted);margin-left:2px;}}
+    /* ── CATEGORY DROPDOWN (사이드바 유형 클릭 시 본문에 결과 표시) ── */
     .cat-dropdown{{
       background:var(--surface);border:1px solid var(--hairline);border-radius:10px;
-      padding:12px;margin-bottom:14px;
+      padding:12px;margin:16px 24px;
     }}
     .cat-dropdown-status{{font-size:0.78rem;color:var(--muted);padding:2px 2px 10px;}}
     .cat-dropdown-status b{{color:var(--primary-text);}}
-    .cat-card-count small{{font-size:0.65rem;font-weight:500;color:var(--muted);margin-left:2px;}}
 
     /* ── LABEL SPOTLIGHT ── */
     .card{{background:var(--surface);border:none;border-left:3px solid transparent;border-radius:12px;margin:0 24px 16px;overflow:hidden;}}
@@ -668,6 +644,11 @@ def build():
     }}
     .spotlight-item:last-child{{border-bottom:none;}}
     .spotlight-item:hover{{background:var(--surface-elevated);}}
+    /* 2026-08-26: [hidden] 속성은 UA 스타일시트(display:none)라서 같은 요소에 걸린
+       .spotlight-item의 author 스타일(display:flex)이 출처(origin) 우선순위상 항상
+       이김 — 이 프로젝트에서 예전에 겪은 "hidden vs 인라인 style" 함정과 동일 계열
+       버그(이번엔 인라인이 아니라 클래스가 원인). 명시적으로 덮어써야 실제로 숨겨짐. */
+    .spotlight-item[hidden]{{display:none;}}
     .spotlight-title{{flex:1;font-size:0.85rem;line-height:1.4;min-width:0;}}
     .spotlight-meta{{font-size:0.72rem;color:var(--muted);white-space:nowrap;flex-shrink:0;}}
     /* 건별 요약(업계 영향) — 항상 다음 줄 전체 너비로, 2줄까지만 표시 */
@@ -675,6 +656,12 @@ def build():
       order:3;flex-basis:100%;font-size:0.78rem;line-height:1.5;color:var(--muted);margin-top:2px;
       display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;
     }}
+    .spotlight-more-btn{{
+      display:block;width:100%;background:none;border:none;border-top:1px solid var(--hairline);
+      color:var(--primary-text);font-size:0.8rem;font-weight:600;padding:10px 8px;
+      cursor:pointer;text-align:center;
+    }}
+    .spotlight-more-btn:hover{{background:var(--surface-elevated);}}
 
     /* ── MAIN ── */
     .main{{max-width:860px;margin:0 auto;padding:14px 20px 80px;}}
@@ -703,7 +690,7 @@ def build():
     .week-cat-dot.cat-etc{{background:var(--muted);}}
     .week-right{{display:flex;align-items:center;gap:7px;flex-shrink:0;}}
     .badge-latest{{background:var(--down);color:#fff;font-size:0.68rem;font-weight:700;padding:2px 6px;border-radius:3px;}}
-    .week-count{{background:rgba(252,213,53,.15);color:var(--primary-text);font-size:0.75rem;font-weight:600;padding:2px 8px;border-radius:4px;font-family:'JetBrains Mono',monospace;}}
+    .week-count{{background:rgba(80,70,229,.15);color:var(--primary-text);font-size:0.75rem;font-weight:600;padding:2px 8px;border-radius:4px;font-family:'JetBrains Mono',monospace;}}
     .week-arrow{{font-size:0.8rem;color:var(--muted);transition:transform .2s;}}
     .accordion-btn.open .week-arrow{{transform:rotate(180deg);}}
     .week-content{{display:none;border-top:1px solid var(--hairline);}}
@@ -719,7 +706,7 @@ def build():
     }}
     .month-btn:hover{{background:var(--surface-elevated);}}
     .month-label{{font-size:0.92rem;font-weight:700;color:var(--primary-text);}}
-    .month-count{{background:rgba(252,213,53,.15);color:var(--primary-text);font-size:0.72rem;font-weight:600;padding:2px 8px;border-radius:4px;font-family:'JetBrains Mono',monospace;margin-left:auto;}}
+    .month-count{{background:rgba(80,70,229,.15);color:var(--primary-text);font-size:0.72rem;font-weight:600;padding:2px 8px;border-radius:4px;font-family:'JetBrains Mono',monospace;margin-left:auto;}}
     .month-btn.open .week-arrow{{transform:rotate(180deg);}}
     .month-content{{display:none;padding:2px 14px 14px;}}
     .month-content.open{{display:block;}}
@@ -768,7 +755,7 @@ def build():
       border-radius:8px;margin-bottom:7px;overflow:hidden;
     }}
     .law-item.hidden{{display:none;}}
-    @keyframes deepLinkPulse{{0%,100%{{box-shadow:0 0 0 0 rgba(252,213,53,0);}}50%{{box-shadow:0 0 0 4px rgba(252,213,53,.55);}}}}
+    @keyframes deepLinkPulse{{0%,100%{{box-shadow:0 0 0 0 rgba(80,70,229,0);}}50%{{box-shadow:0 0 0 4px rgba(80,70,229,.55);}}}}
     .law-item.deep-link-highlight{{animation:deepLinkPulse 1s ease-in-out 2;border-radius:8px;}}
     .week-section.deep-link-highlight{{animation:deepLinkPulse 1s ease-in-out 2;border-radius:12px;}}
     .law-header{{padding:11px 14px;cursor:pointer;}}
@@ -779,14 +766,14 @@ def build():
     .tag-gray{{background:var(--surface);color:var(--muted);border:1px solid var(--hairline);}}
     .tag-interest{{background:rgba(45,189,182,.15);color:var(--turquoise);border:1px solid rgba(45,189,182,.35);}}
     .cat-tag{{border:1px solid transparent;}}
-    .cat-label{{background:rgba(252,213,53,.15);color:var(--primary-text);border-color:rgba(252,213,53,.35);}}
+    .cat-label{{background:rgba(80,70,229,.15);color:var(--primary-text);border-color:rgba(80,70,229,.35);}}
     .cat-spec{{background:rgba(59,130,246,.15);color:var(--info);border-color:rgba(59,130,246,.35);}}
     .cat-safety{{background:rgba(14,203,129,.15);color:var(--up);border-color:rgba(14,203,129,.3);}}
     .cat-trade{{background:rgba(45,189,182,.15);color:var(--turquoise);border-color:rgba(45,189,182,.35);}}
     .cat-biz{{background:rgba(146,154,165,.15);color:var(--muted-strong);border-color:rgba(146,154,165,.3);}}
     .cat-etc{{background:rgba(112,122,138,.12);color:var(--muted);border-color:rgba(112,122,138,.25);}}
     .status-enforce{{background:rgba(14,203,129,.2);color:var(--up);border:1px solid rgba(14,203,129,.4);}}
-    .status-notice{{background:rgba(252,213,53,.2);color:var(--primary-text);border:1px solid rgba(252,213,53,.4);}}
+    .status-notice{{background:rgba(80,70,229,.2);color:var(--primary-text);border:1px solid rgba(80,70,229,.4);}}
     .status-pub{{background:rgba(59,130,246,.2);color:var(--info);border:1px solid rgba(59,130,246,.4);}}
     .status-info{{background:var(--surface);color:var(--muted);border:1px solid var(--hairline);}}
     .badge-new{{background:var(--down);color:#fff;font-size:0.66rem;font-weight:700;padding:2px 5px;border-radius:3px;}}
@@ -820,14 +807,14 @@ def build():
     /* ── IMPACT ── */
     .impact-box{{
       font-size:0.81rem;color:var(--primary-text);
-      background:rgba(252,213,53,.08);border-left:3px solid var(--primary);
+      background:rgba(80,70,229,.08);border-left:3px solid var(--primary);
       padding:8px 12px;border-radius:0 4px 4px 0;margin-bottom:12px;line-height:1.5;
     }}
 
     /* ── LAW FOOTER ── */
     .law-footer{{display:flex;gap:7px;flex-wrap:wrap;margin-top:4px;}}
     .btn-original{{
-      background:rgba(252,213,53,.15);color:var(--primary-text);border:none;
+      background:rgba(80,70,229,.15);color:var(--primary-text);border:none;
       padding:5px 12px;border-radius:4px;font-size:0.78rem;cursor:pointer;
       text-decoration:none;display:inline-block;font-weight:600;
     }}
@@ -848,18 +835,33 @@ def build():
       text-align:center;padding:20px;font-size:0.73rem;color:var(--muted);
       border-top:1px solid var(--hairline);margin-top:40px;
     }}
+    /* 2026-08-26: 사이드바 리뉴얼 — 216px 고정 사이드바는 폭이 좁은 화면에서 본문을
+       너무 눌러버리므로, 760px 이하에서는 사이드바를 상단 가로 스트립으로 접는다
+       (예전 filter-bar/cat-grid가 모바일에서 하던 역할과 동일한 자리로 되돌리는 셈). */
+    @media(max-width:760px){{
+      .shell{{flex-direction:column;}}
+      .sidebar{{
+        width:100%;height:auto;position:static;border-right:none;
+        border-bottom:1px solid var(--hairline);
+        display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;padding:12px 16px;
+      }}
+      .sidebar-brand{{width:100%;margin-bottom:0;}}
+      .sidebar-sub{{display:none;}}
+      /* flex-basis:100%로 각 그룹(연도/상태/유형)이 항상 자기 줄에서 시작하도록 강제 —
+         안 그러면 이전 그룹의 마지막 줄 남는 공간에 다음 그룹 라벨이 끼어들어간다. */
+      .nav-group{{flex-basis:100%;margin-bottom:0;display:flex;align-items:center;gap:6px;flex-wrap:wrap;}}
+      .nav-group-label{{padding:0;margin:0 2px 0 0;flex-shrink:0;}}
+      .nav-item{{width:auto;gap:6px;padding:7px 12px;min-height:32px;border-radius:20px;border:1px solid var(--hairline);}}
+    }}
     @media(max-width:600px){{
-      .kpi-row{{grid-template-columns:1fr 1fr;}}
-      .cat-grid{{grid-template-columns:repeat(2,1fr);}}
       .week-range{{display:none;}}
-      .header-right{{display:none;}}
       .card{{margin:0 12px 16px;}}
-      .toolbar{{flex-wrap:wrap;}}
+      .stat-strip{{padding:14px 16px;}}
+      .toolbar{{flex-wrap:wrap;padding:14px 16px;}}
       /* 2026-08-20: 기존엔 .search-box의 flex:1(=flex-basis:0%)이 width:100%보다
          우선 적용돼 검색창이 옆 버튼과 한 줄에 끼어 좁아지는 버그가 있었음 —
          flex-basis를 100%로 명시해 항상 자기 줄 전체를 차지하도록 수정. */
-      .search-box{{flex:1 1 100%;max-width:none;min-width:0;order:1;}}
-      .toolbar-info{{order:0;}}
+      .search-box{{flex:1 1 100%;max-width:none;min-width:0;order:0;}}
       /* 2026-08-20: "표시사항 변경 추적" 목록이 태그+제목+날짜를 한 줄에 욱여넣어
          좁은 화면에서 제목이 단어 중간까지 여러 줄로 쪼개지던 문제 — 태그·날짜를
          위쪽 한 줄로, 제목은 아래에 전체 너비로 분리. */
@@ -872,77 +874,70 @@ def build():
 </head>
 <body>
 
-<header class="site-header">
-  <div class="header-left">
-    <div class="header-titlerow">
+<div class="shell">
+  <aside class="sidebar">
+    <div class="sidebar-brand">
       <h1>
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
-        식품 법령 개정 모니터
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+        법령 모니터
       </h1>
-      <button class="theme-toggle" onclick="toggleTheme()" id="themeToggleBtn" title="라이트/다크 모드 전환"><span id="themeToggleIcon">🌙</span><span id="themeToggleLabel">라이트 모드</span></button>
+      <button class="theme-toggle" onclick="toggleTheme()" id="themeToggleBtn" title="라이트/다크 모드 전환"><span id="themeToggleIcon">🌙</span></button>
     </div>
-    <p>식약처 연동 · {years[-1] if years else ""}~{years[0] if years else ""}년 누적 아카이브</p>
-  </div>
-  <div class="header-right">
-    <span class="hbadge">식약처</span>
-  </div>
-</header>
+    <p class="sidebar-sub">식약처 연동 · {years[-1] if years else ""}~{years[0] if years else ""}년 · 총 {total_weeks}주차 · {all_items}건</p>
 
-<div class="toolbar">
-  <span class="toolbar-info">총 <b>{total_weeks}</b>주차 수록 · 누적 <b>{all_items}</b>건</span>
-  <div class="search-box">
-    <span class="search-icon">🔍</span>
-    <input type="text" id="searchInput" class="search-input" placeholder="키워드 검색 (제목·내용)" oninput="setSearch(this.value)">
-    <button class="search-clear" id="searchClearBtn" onclick="clearSearch()" hidden>✕</button>
-  </div>
-  <button class="btn-tool" onclick="expandAll()">모두 펼치기</button>
-  <button class="btn-tool" onclick="collapseAll()">이전 주 접기</button>
-  <button class="btn-tool btn-copy-all" onclick="copyAllArchive(this)">📋 전체 아카이브 복사</button>
-</div>
-<div class="filter-bar">
-  <span id="yearFilterGroup" class="year-filter-group">
-    <span class="filter-label">연도</span>
-    <button class="filter-btn" onclick="setYear(this,'all')">전체</button>
-    {year_btns_html}
-    <div class="filter-sep"></div>
-  </span>
-  <span class="filter-label">상태</span>
-  <button class="filter-btn active" onclick="setStatus(this,'all')">전체</button>
-  <button class="filter-btn" onclick="setStatus(this,'시행')">시행</button>
-  <button class="filter-btn" onclick="setStatus(this,'예고')">예고</button>
-</div>
-<div class="search-status" id="searchStatus" hidden></div>
-<div class="main" id="searchResults" hidden></div>
+    <div class="nav-group">
+      <div class="nav-group-label">연도</div>
+      <div id="yearFilterGroup">
+        <button class="nav-item" onclick="setYear(this,'all')">전체</button>
+        {year_btns_html}
+      </div>
+    </div>
 
-<div id="normalView">
-{cat_overview_html}
+    <div class="nav-group">
+      <div class="nav-group-label">상태</div>
+      <button class="nav-item active" onclick="setStatus(this,'all')">전체</button>
+      <button class="nav-item" onclick="setStatus(this,'시행')">시행</button>
+      <button class="nav-item" onclick="setStatus(this,'예고')">예고</button>
+    </div>
 
-<div class="kpi-row">
-  <div class="kpi">
-    <div class="kpi-label">이번 주 수집</div>
-    <div class="kpi-val">{kpi_total}<span class="kpi-unit">건</span></div>
-  </div>
-  <div class="kpi blue">
-    <div class="kpi-label">시행 확정</div>
-    <div class="kpi-val">{kpi_enforce}<span class="kpi-unit">건</span></div>
-  </div>
-  <div class="kpi orange">
-    <div class="kpi-label">예고·검토</div>
-    <div class="kpi-val">{kpi_notice}<span class="kpi-unit">건</span></div>
-  </div>
-  <div class="kpi red">
-    <div class="kpi-label">누적 주차</div>
-    <div class="kpi-val">{total_weeks}<span class="kpi-unit">주</span></div>
-  </div>
-</div>
+    <div class="nav-group">
+      <div class="nav-group-label">유형</div>
+      {cat_nav_html}
+    </div>
+  </aside>
 
-{label_spotlight_html}
+  <div class="main-col">
+    <div class="toolbar">
+      <div class="search-box">
+        <span class="search-icon">🔍</span>
+        <input type="text" id="searchInput" class="search-input" placeholder="키워드 검색 (제목·내용)" oninput="setSearch(this.value)">
+        <button class="search-clear" id="searchClearBtn" onclick="clearSearch()" hidden>✕</button>
+      </div>
+      <button class="btn-tool" onclick="expandAll()">모두 펼치기</button>
+      <button class="btn-tool" onclick="collapseAll()">이전 주 접기</button>
+      <button class="btn-tool btn-copy-all" onclick="copyAllArchive(this)">📋 전체 아카이브 복사</button>
+    </div>
+    <div class="search-status" id="searchStatus" hidden></div>
+    <div class="main" id="searchResults" hidden></div>
 
-{monthly_summary_html}
+    <div id="normalView">
+      {monthly_summary_html}
 
-<main class="main" id="weeksMain">
-  {weeks_html}
-</main>
+      <div class="stat-strip">
+        <span><b>{kpi_total}</b>건 이번 주</span><span class="stat-dot"></span>
+        <span><b>{kpi_enforce}</b>건 시행 확정</span><span class="stat-dot"></span>
+        <span><b>{kpi_notice}</b>건 예고·검토</span><span class="stat-dot"></span>
+        <span><b>{total_weeks}</b>주 누적</span>
+      </div>
+      <div class="cat-dropdown" id="catDropdown" hidden></div>
+
+      {label_spotlight_html}
+
+      <main class="main" id="weeksMain">
+        {weeks_html}
+      </main>
+    </div>
+  </div>
 </div>
 
 <textarea id="archive-full-text" style="display:none">{esc(archive_text)}</textarea>
@@ -952,16 +947,17 @@ def build():
 </footer>
 
 <script>
+// 2026-08-26 리뉴얼: 기본 테마가 다크→라이트로 바뀌어 "속성 없음 = 라이트"가 기준이
+// 됐다(예전엔 "속성 없음 = 다크"였음) — 아이콘/토글 판정 기준을 이에 맞춰 반전.
 function applyThemeIcon() {{
-  const isLight = document.documentElement.getAttribute('data-theme') === 'light';
+  const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
   const icon = document.getElementById('themeToggleIcon');
-  const label = document.getElementById('themeToggleLabel');
-  if (icon) icon.textContent = isLight ? '☀️' : '🌙';
-  if (label) label.textContent = isLight ? '다크 모드' : '라이트 모드';
+  if (icon) icon.textContent = isDark ? '☀️' : '🌙';
+  if (icon) icon.parentElement.title = isDark ? '라이트 모드로 전환' : '다크 모드로 전환';
 }}
 function toggleTheme() {{
-  const cur = document.documentElement.getAttribute('data-theme') === 'light' ? 'light' : 'dark';
-  const next = cur === 'light' ? 'dark' : 'light';
+  const cur = document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'light';
+  const next = cur === 'dark' ? 'light' : 'dark';
   document.documentElement.setAttribute('data-theme', next);
   localStorage.setItem('theme', next);
   applyThemeIcon();
@@ -975,6 +971,13 @@ function toggleWeek(btn) {{
 function toggleItem(header) {{
   const item = header.closest('.law-item');
   if (item.classList.contains('expandable')) item.classList.toggle('expanded');
+}}
+function toggleSpotlightMore(btn) {{
+  const body = btn.previousElementSibling;
+  const extras = body.querySelectorAll('.spotlight-extra');
+  const expanding = extras.length > 0 && extras[0].hidden;
+  extras.forEach(it => it.hidden = !expanding);
+  btn.textContent = expanding ? '접기 ↑' : `나머지 ${{extras.length}}건 더보기 ↓`;
 }}
 function expandAll() {{
   document.querySelectorAll('.accordion-btn').forEach(b => {{
@@ -1095,8 +1098,8 @@ function clearAllFilters() {{
   document.querySelector('[data-cat-btn][data-cat="all"]').classList.add('active');
 
   activeSt = 'all';
-  document.querySelectorAll('.filter-btn[onclick*="setStatus"]').forEach(b => b.classList.remove('active'));
-  document.querySelector(`.filter-btn[onclick="setStatus(this,'all')"]`).classList.add('active');
+  document.querySelectorAll('.nav-item[onclick*="setStatus"]').forEach(b => b.classList.remove('active'));
+  document.querySelector(`.nav-item[onclick="setStatus(this,'all')"]`).classList.add('active');
 
   applyFilter();
 }}
@@ -1112,13 +1115,13 @@ function clearSearch() {{
   setSearch('');
 }}
 async function setYear(btn, val) {{
-  document.querySelectorAll('.filter-btn[onclick*="setYear"]').forEach(b=>b.classList.remove('active'));
+  document.querySelectorAll('.nav-item[onclick*="setYear"]').forEach(b=>b.classList.remove('active'));
   btn.classList.add('active'); activeYear=val;
   if (val !== LATEST_YEAR) await ensureAllYearsLoaded();
   applyFilter();
 }}
 function setStatus(btn, val) {{
-  document.querySelectorAll('.filter-btn[onclick*="setStatus"]').forEach(b=>b.classList.remove('active'));
+  document.querySelectorAll('.nav-item[onclick*="setStatus"]').forEach(b=>b.classList.remove('active'));
   btn.classList.add('active'); activeSt=val; applyFilter();
 }}
 async function setCategory(btn, val) {{
@@ -1162,8 +1165,8 @@ async function handleDeepLink() {{
 
   if (activeYear !== 'all') {{
     activeYear = 'all';
-    document.querySelectorAll('.filter-btn[onclick*="setYear"]').forEach(b => b.classList.remove('active'));
-    document.querySelector(`.filter-btn[onclick="setYear(this,'all')"]`).classList.add('active');
+    document.querySelectorAll('.nav-item[onclick*="setYear"]').forEach(b => b.classList.remove('active'));
+    document.querySelector(`.nav-item[onclick="setYear(this,'all')"]`).classList.add('active');
     applyFilter();
   }}
 

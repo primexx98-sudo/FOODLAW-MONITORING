@@ -18,54 +18,61 @@
   </script>
   <style>
     *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-    /* 2026-08-19: 트렌드 대시보드(health-trend)와 동일한 Binance 다크테마 토큰으로 통일
-       — 두 대시보드가 허브(food-monitor-hub) 안에서 서로 다른 룩앤필이던 문제 해소 */
+    /* 2026-08-26: 전면 리뉴얼 — 다크+옐로(Binance) 기본 정체성에서 라이트+인디고
+       (Stripe 계열) 기본 정체성으로 전환. 라이트가 기본(bare :root)이고 다크는
+       [data-theme="dark"] 오버라이드 — 예전과 정반대 구조이므로 테마 토글 JS도
+       "기본값 = 다크"였던 가정을 "기본값 = 라이트"로 맞춰 함께 수정했음(아래 <script> 참고). */
     :root{
-      --canvas:#0b0e11;--surface:#1e2329;--surface-elevated:#2b3139;
-      --hairline:#2b3139;--body-text:#eaecef;--muted:#707a8a;--muted-strong:#929aa5;
-      --primary:#fcd535;--primary-text:#fcd535;--primary-active:#f0b90b;
-      --up:#0ecb81;--down:#f6465d;--info:#3b82f6;--turquoise:#2dbdb6;
-    }
-    :root[data-theme="light"]{
-      --canvas:#f7f8fa;--surface:#ffffff;--surface-elevated:#f0f2f5;
-      --hairline:#e6e8eb;--body-text:#1e2329;--muted:#76808f;--muted-strong:#4b5563;
-      --primary:#fcd535;--primary-text:#9a7300;--primary-active:#b8860b;
+      --canvas:#ffffff;--surface:#f6f7fb;--surface-elevated:#eef0f7;
+      --hairline:#e3e8ee;--body-text:#0d253d;--muted:#8695ab;--muted-strong:#425466;
+      --primary:#5046e5;--primary-text:#5046e5;--primary-active:#3f37c9;
       --up:#0a9f68;--down:#d63447;--info:#2563eb;--turquoise:#0f8f88;
+    }
+    :root[data-theme="dark"]{
+      --canvas:#0b0e14;--surface:#161a22;--surface-elevated:#1f2430;
+      --hairline:#262c38;--body-text:#eef1f7;--muted:#7c8494;--muted-strong:#b9c0cf;
+      --primary:#7c74f5;--primary-text:#7c74f5;--primary-active:#948dfd;
+      --up:#0ecb81;--down:#f6465d;--info:#3b82f6;--turquoise:#2dbdb6;
     }
     body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI','Apple SD Gothic Neo','Noto Sans KR',sans-serif;
       background:var(--canvas);color:var(--body-text);font-size:14px;line-height:1.65;}
     .mono{font-family:'JetBrains Mono',monospace;}
 
-    /* ── HEADER ── */
-    .site-header{
-      background:var(--canvas);border-bottom:1px solid var(--hairline);
-      padding:14px 24px 12px;
-      display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:10px;
+    /* ── SHELL (2026-08-26 리뉴얼: 사이드바 내비게이션형) ── */
+    .shell{display:flex;align-items:flex-start;min-height:100vh;}
+    .sidebar{
+      width:216px;flex-shrink:0;background:var(--surface);border-right:1px solid var(--hairline);
+      padding:20px 14px;position:sticky;top:0;height:100vh;overflow-y:auto;
     }
-    .header-left{display:flex;flex-direction:column;gap:2px;}
-    .header-left h1{font-size:1.15rem;font-weight:700;color:var(--body-text);letter-spacing:-.3px;}
-    .header-left h1 svg{vertical-align:middle;margin-right:6px;color:var(--primary-text);}
-    .header-left p{font-size:0.75rem;color:var(--muted);margin-top:3px;}
-    .header-titlerow{display:flex;align-items:center;gap:8px;}
-    .header-right{display:flex;gap:6px;flex-wrap:wrap;align-items:center;}
-    .hbadge{background:var(--surface-elevated);border:1px solid var(--hairline);
-      border-radius:4px;padding:3px 9px;font-size:0.72rem;color:var(--muted-strong);}
-    .hbadge.accent{background:rgba(252,213,53,.12);color:var(--primary-text);border-color:rgba(252,213,53,.35);}
+    .sidebar-brand{display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;padding:0 6px;}
+    .sidebar-brand h1{font-size:0.98rem;font-weight:700;color:var(--body-text);letter-spacing:-.2px;display:flex;align-items:center;gap:6px;}
+    .sidebar-brand h1 svg{color:var(--primary-text);flex-shrink:0;}
+    .sidebar-sub{font-size:0.7rem;color:var(--muted);padding:0 6px;margin-bottom:20px;line-height:1.5;}
     .theme-toggle{
       background:var(--surface-elevated);border:1px solid var(--hairline);
-      color:var(--body-text);height:26px;padding:0 10px;border-radius:13px;cursor:pointer;
-      display:inline-flex;align-items:center;gap:5px;justify-content:center;
-      font-size:0.72rem;font-weight:600;flex-shrink:0;line-height:1;white-space:nowrap;
+      color:var(--body-text);width:26px;height:26px;border-radius:13px;cursor:pointer;
+      display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;font-size:0.8rem;
     }
     .theme-toggle:hover{background:var(--hairline);}
+    .nav-group{margin-bottom:18px;}
+    .nav-group-label{font-size:0.68rem;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;font-weight:600;padding:0 8px;margin-bottom:5px;}
+    .nav-item{
+      display:flex;align-items:center;justify-content:space-between;width:100%;text-align:left;
+      background:none;border:none;padding:8px 8px;border-radius:6px;font-size:0.8rem;color:var(--muted-strong);
+      cursor:pointer;font-family:inherit;min-height:34px;
+    }
+    .nav-item:hover{background:var(--surface-elevated);}
+    .nav-item.active{background:rgba(80,70,229,.1);color:var(--primary-text);font-weight:700;}
+    .nav-item-count{font-family:'JetBrains Mono',monospace;font-size:0.7rem;color:var(--muted);flex-shrink:0;}
+    .nav-item.active .nav-item-count{color:var(--primary-text);}
+    .nav-item-priority{box-shadow:inset 2px 0 0 rgba(80,70,229,.35);}
 
-    /* ── TOOLBAR ── */
+    /* ── MAIN COLUMN ── */
+    .main-col{flex:1;min-width:0;}
     .toolbar{
       background:var(--canvas);border-bottom:1px solid var(--hairline);
-      padding:7px 24px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;
+      padding:14px 24px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;
     }
-    .toolbar-info{font-size:0.8rem;color:var(--muted);flex:1;}
-    .toolbar-info b{color:var(--primary-text);}
     .btn-tool{
       background:var(--surface);border:1px solid var(--hairline);color:var(--body-text);
       padding:7px 13px;min-height:34px;display:inline-flex;align-items:center;
@@ -102,62 +109,22 @@
     }
     .status-clear-btn:hover{background:var(--surface-elevated);color:var(--body-text);}
 
-    /* ── FILTER ── */
-    .filter-bar{
-      background:var(--canvas);border-bottom:1px solid var(--hairline);
-      padding:8px 24px;display:flex;gap:8px;flex-wrap:wrap;align-items:center;
+    /* ── STAT STRIP (2026-08-26: KPI 박스 4개 → 본문 상단 한 줄 통계로 축소,
+       필터는 전부 사이드바로 옮겼으므로 이 자리엔 "현재 뭘 보고 있는지" 요약만 남김) ── */
+    .stat-strip{
+      display:flex;align-items:center;gap:14px;flex-wrap:wrap;font-size:0.8rem;color:var(--muted-strong);
+      padding:16px 24px;border-bottom:1px solid var(--hairline);
     }
-    .filter-label{font-size:0.74rem;color:var(--muted);}
-    .filter-sep{width:1px;height:14px;background:var(--hairline);margin:0 4px;}
-    .year-filter-group{display:contents;}
-    .year-filter-group[hidden]{display:none;}
-    /* 2026-08-26: 터치 타겟 확대 — 기존 padding 3px 11px(실측 높이 ~20px)는 권장 최소
-       터치 영역에 크게 못 미쳐 모바일에서 오탭 유발. min-height로 바닥선을 보장. */
-    .filter-btn{
-      background:transparent;border:1px solid var(--hairline);color:var(--muted);
-      padding:7px 14px;min-height:34px;display:inline-flex;align-items:center;
-      border-radius:20px;font-size:0.78rem;cursor:pointer;
-    }
-    .filter-btn.active{background:rgba(252,213,53,.15);border-color:var(--primary);color:var(--primary-text);}
+    .stat-strip b{font-family:'JetBrains Mono',monospace;font-size:0.95rem;color:var(--body-text);font-weight:700;}
+    .stat-strip .stat-dot{width:3px;height:3px;border-radius:50%;background:var(--muted);flex-shrink:0;}
 
-    /* ── KPI ── */
-    .kpi-row{
-      display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));
-      gap:8px;padding:14px 24px;background:var(--canvas);border-bottom:1px solid var(--hairline);
-    }
-    .kpi{background:var(--surface);border:none;border-radius:12px;
-      padding:12px 15px;border-left:3px solid var(--primary);}
-    .kpi.blue{border-left-color:var(--info);}
-    .kpi.orange{border-left-color:var(--primary);}
-    .kpi.red{border-left-color:var(--down);}
-    .kpi-label{font-size:0.72rem;color:var(--muted);margin-bottom:4px;}
-    .kpi-val{font-size:1.35rem;font-weight:700;font-family:'JetBrains Mono',monospace;}
-    .kpi-unit{font-size:0.7rem;color:var(--muted);}
-
-    /* ── CATEGORY OVERVIEW ── */
-    .cat-overview{padding:16px 24px 4px;background:var(--canvas);}
-    .cat-overview-title{font-size:0.85rem;font-weight:700;color:var(--body-text);margin-bottom:10px;}
-    .cat-overview-sub{font-weight:400;color:var(--muted);font-size:0.76rem;}
-    .cat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px;margin-bottom:14px;}
-    .cat-card{
-      background:var(--surface);border:1px solid var(--hairline);border-radius:10px;
-      padding:10px 12px;cursor:pointer;text-align:left;display:flex;flex-direction:column;gap:4px;
-      color:var(--body-text);transition:border-color .15s;
-    }
-    .cat-card:hover{border-color:var(--muted-strong);}
-    .cat-card.active{border-color:var(--primary);box-shadow:0 0 0 1px var(--primary) inset;}
-    .cat-card-priority{border-color:rgba(252,213,53,.4);}
-    .cat-card-icon{font-size:1.1rem;}
-    .cat-card-label{font-size:0.76rem;color:var(--muted-strong);font-weight:600;}
-    .cat-card-count{font-size:1.15rem;font-weight:700;font-family:'JetBrains Mono',monospace;color:var(--body-text);}
-    .cat-card-count small{font-size:0.65rem;font-weight:500;color:var(--muted);margin-left:2px;}
+    /* ── CATEGORY DROPDOWN (사이드바 유형 클릭 시 본문에 결과 표시) ── */
     .cat-dropdown{
       background:var(--surface);border:1px solid var(--hairline);border-radius:10px;
-      padding:12px;margin-bottom:14px;
+      padding:12px;margin:16px 24px;
     }
     .cat-dropdown-status{font-size:0.78rem;color:var(--muted);padding:2px 2px 10px;}
     .cat-dropdown-status b{color:var(--primary-text);}
-    .cat-card-count small{font-size:0.65rem;font-weight:500;color:var(--muted);margin-left:2px;}
 
     /* ── LABEL SPOTLIGHT ── */
     .card{background:var(--surface);border:none;border-left:3px solid transparent;border-radius:12px;margin:0 24px 16px;overflow:hidden;}
@@ -177,6 +144,11 @@
     }
     .spotlight-item:last-child{border-bottom:none;}
     .spotlight-item:hover{background:var(--surface-elevated);}
+    /* 2026-08-26: [hidden] 속성은 UA 스타일시트(display:none)라서 같은 요소에 걸린
+       .spotlight-item의 author 스타일(display:flex)이 출처(origin) 우선순위상 항상
+       이김 — 이 프로젝트에서 예전에 겪은 "hidden vs 인라인 style" 함정과 동일 계열
+       버그(이번엔 인라인이 아니라 클래스가 원인). 명시적으로 덮어써야 실제로 숨겨짐. */
+    .spotlight-item[hidden]{display:none;}
     .spotlight-title{flex:1;font-size:0.85rem;line-height:1.4;min-width:0;}
     .spotlight-meta{font-size:0.72rem;color:var(--muted);white-space:nowrap;flex-shrink:0;}
     /* 건별 요약(업계 영향) — 항상 다음 줄 전체 너비로, 2줄까지만 표시 */
@@ -184,6 +156,12 @@
       order:3;flex-basis:100%;font-size:0.78rem;line-height:1.5;color:var(--muted);margin-top:2px;
       display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;
     }
+    .spotlight-more-btn{
+      display:block;width:100%;background:none;border:none;border-top:1px solid var(--hairline);
+      color:var(--primary-text);font-size:0.8rem;font-weight:600;padding:10px 8px;
+      cursor:pointer;text-align:center;
+    }
+    .spotlight-more-btn:hover{background:var(--surface-elevated);}
 
     /* ── MAIN ── */
     .main{max-width:860px;margin:0 auto;padding:14px 20px 80px;}
@@ -212,7 +190,7 @@
     .week-cat-dot.cat-etc{background:var(--muted);}
     .week-right{display:flex;align-items:center;gap:7px;flex-shrink:0;}
     .badge-latest{background:var(--down);color:#fff;font-size:0.68rem;font-weight:700;padding:2px 6px;border-radius:3px;}
-    .week-count{background:rgba(252,213,53,.15);color:var(--primary-text);font-size:0.75rem;font-weight:600;padding:2px 8px;border-radius:4px;font-family:'JetBrains Mono',monospace;}
+    .week-count{background:rgba(80,70,229,.15);color:var(--primary-text);font-size:0.75rem;font-weight:600;padding:2px 8px;border-radius:4px;font-family:'JetBrains Mono',monospace;}
     .week-arrow{font-size:0.8rem;color:var(--muted);transition:transform .2s;}
     .accordion-btn.open .week-arrow{transform:rotate(180deg);}
     .week-content{display:none;border-top:1px solid var(--hairline);}
@@ -228,7 +206,7 @@
     }
     .month-btn:hover{background:var(--surface-elevated);}
     .month-label{font-size:0.92rem;font-weight:700;color:var(--primary-text);}
-    .month-count{background:rgba(252,213,53,.15);color:var(--primary-text);font-size:0.72rem;font-weight:600;padding:2px 8px;border-radius:4px;font-family:'JetBrains Mono',monospace;margin-left:auto;}
+    .month-count{background:rgba(80,70,229,.15);color:var(--primary-text);font-size:0.72rem;font-weight:600;padding:2px 8px;border-radius:4px;font-family:'JetBrains Mono',monospace;margin-left:auto;}
     .month-btn.open .week-arrow{transform:rotate(180deg);}
     .month-content{display:none;padding:2px 14px 14px;}
     .month-content.open{display:block;}
@@ -277,7 +255,7 @@
       border-radius:8px;margin-bottom:7px;overflow:hidden;
     }
     .law-item.hidden{display:none;}
-    @keyframes deepLinkPulse{0%,100%{box-shadow:0 0 0 0 rgba(252,213,53,0);}50%{box-shadow:0 0 0 4px rgba(252,213,53,.55);}}
+    @keyframes deepLinkPulse{0%,100%{box-shadow:0 0 0 0 rgba(80,70,229,0);}50%{box-shadow:0 0 0 4px rgba(80,70,229,.55);}}
     .law-item.deep-link-highlight{animation:deepLinkPulse 1s ease-in-out 2;border-radius:8px;}
     .week-section.deep-link-highlight{animation:deepLinkPulse 1s ease-in-out 2;border-radius:12px;}
     .law-header{padding:11px 14px;cursor:pointer;}
@@ -288,14 +266,14 @@
     .tag-gray{background:var(--surface);color:var(--muted);border:1px solid var(--hairline);}
     .tag-interest{background:rgba(45,189,182,.15);color:var(--turquoise);border:1px solid rgba(45,189,182,.35);}
     .cat-tag{border:1px solid transparent;}
-    .cat-label{background:rgba(252,213,53,.15);color:var(--primary-text);border-color:rgba(252,213,53,.35);}
+    .cat-label{background:rgba(80,70,229,.15);color:var(--primary-text);border-color:rgba(80,70,229,.35);}
     .cat-spec{background:rgba(59,130,246,.15);color:var(--info);border-color:rgba(59,130,246,.35);}
     .cat-safety{background:rgba(14,203,129,.15);color:var(--up);border-color:rgba(14,203,129,.3);}
     .cat-trade{background:rgba(45,189,182,.15);color:var(--turquoise);border-color:rgba(45,189,182,.35);}
     .cat-biz{background:rgba(146,154,165,.15);color:var(--muted-strong);border-color:rgba(146,154,165,.3);}
     .cat-etc{background:rgba(112,122,138,.12);color:var(--muted);border-color:rgba(112,122,138,.25);}
     .status-enforce{background:rgba(14,203,129,.2);color:var(--up);border:1px solid rgba(14,203,129,.4);}
-    .status-notice{background:rgba(252,213,53,.2);color:var(--primary-text);border:1px solid rgba(252,213,53,.4);}
+    .status-notice{background:rgba(80,70,229,.2);color:var(--primary-text);border:1px solid rgba(80,70,229,.4);}
     .status-pub{background:rgba(59,130,246,.2);color:var(--info);border:1px solid rgba(59,130,246,.4);}
     .status-info{background:var(--surface);color:var(--muted);border:1px solid var(--hairline);}
     .badge-new{background:var(--down);color:#fff;font-size:0.66rem;font-weight:700;padding:2px 5px;border-radius:3px;}
@@ -329,14 +307,14 @@
     /* ── IMPACT ── */
     .impact-box{
       font-size:0.81rem;color:var(--primary-text);
-      background:rgba(252,213,53,.08);border-left:3px solid var(--primary);
+      background:rgba(80,70,229,.08);border-left:3px solid var(--primary);
       padding:8px 12px;border-radius:0 4px 4px 0;margin-bottom:12px;line-height:1.5;
     }
 
     /* ── LAW FOOTER ── */
     .law-footer{display:flex;gap:7px;flex-wrap:wrap;margin-top:4px;}
     .btn-original{
-      background:rgba(252,213,53,.15);color:var(--primary-text);border:none;
+      background:rgba(80,70,229,.15);color:var(--primary-text);border:none;
       padding:5px 12px;border-radius:4px;font-size:0.78rem;cursor:pointer;
       text-decoration:none;display:inline-block;font-weight:600;
     }
@@ -357,18 +335,33 @@
       text-align:center;padding:20px;font-size:0.73rem;color:var(--muted);
       border-top:1px solid var(--hairline);margin-top:40px;
     }
+    /* 2026-08-26: 사이드바 리뉴얼 — 216px 고정 사이드바는 폭이 좁은 화면에서 본문을
+       너무 눌러버리므로, 760px 이하에서는 사이드바를 상단 가로 스트립으로 접는다
+       (예전 filter-bar/cat-grid가 모바일에서 하던 역할과 동일한 자리로 되돌리는 셈). */
+    @media(max-width:760px){
+      .shell{flex-direction:column;}
+      .sidebar{
+        width:100%;height:auto;position:static;border-right:none;
+        border-bottom:1px solid var(--hairline);
+        display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;padding:12px 16px;
+      }
+      .sidebar-brand{width:100%;margin-bottom:0;}
+      .sidebar-sub{display:none;}
+      /* flex-basis:100%로 각 그룹(연도/상태/유형)이 항상 자기 줄에서 시작하도록 강제 —
+         안 그러면 이전 그룹의 마지막 줄 남는 공간에 다음 그룹 라벨이 끼어들어간다. */
+      .nav-group{flex-basis:100%;margin-bottom:0;display:flex;align-items:center;gap:6px;flex-wrap:wrap;}
+      .nav-group-label{padding:0;margin:0 2px 0 0;flex-shrink:0;}
+      .nav-item{width:auto;gap:6px;padding:7px 12px;min-height:32px;border-radius:20px;border:1px solid var(--hairline);}
+    }
     @media(max-width:600px){
-      .kpi-row{grid-template-columns:1fr 1fr;}
-      .cat-grid{grid-template-columns:repeat(2,1fr);}
       .week-range{display:none;}
-      .header-right{display:none;}
       .card{margin:0 12px 16px;}
-      .toolbar{flex-wrap:wrap;}
+      .stat-strip{padding:14px 16px;}
+      .toolbar{flex-wrap:wrap;padding:14px 16px;}
       /* 2026-08-20: 기존엔 .search-box의 flex:1(=flex-basis:0%)이 width:100%보다
          우선 적용돼 검색창이 옆 버튼과 한 줄에 끼어 좁아지는 버그가 있었음 —
          flex-basis를 100%로 명시해 항상 자기 줄 전체를 차지하도록 수정. */
-      .search-box{flex:1 1 100%;max-width:none;min-width:0;order:1;}
-      .toolbar-info{order:0;}
+      .search-box{flex:1 1 100%;max-width:none;min-width:0;order:0;}
       /* 2026-08-20: "표시사항 변경 추적" 목록이 태그+제목+날짜를 한 줄에 욱여넣어
          좁은 화면에서 제목이 단어 중간까지 여러 줄로 쪼개지던 문제 — 태그·날짜를
          위쪽 한 줄로, 제목은 아래에 전체 너비로 분리. */
@@ -381,186 +374,68 @@
 </head>
 <body>
 
-<header class="site-header">
-  <div class="header-left">
-    <div class="header-titlerow">
+<div class="shell">
+  <aside class="sidebar">
+    <div class="sidebar-brand">
       <h1>
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
-        식품 법령 개정 모니터
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+        법령 모니터
       </h1>
-      <button class="theme-toggle" onclick="toggleTheme()" id="themeToggleBtn" title="라이트/다크 모드 전환"><span id="themeToggleIcon">🌙</span><span id="themeToggleLabel">라이트 모드</span></button>
+      <button class="theme-toggle" onclick="toggleTheme()" id="themeToggleBtn" title="라이트/다크 모드 전환"><span id="themeToggleIcon">🌙</span></button>
     </div>
-    <p>식약처 연동 · 2023~2026년 누적 아카이브</p>
-  </div>
-  <div class="header-right">
-    <span class="hbadge">식약처</span>
-  </div>
-</header>
+    <p class="sidebar-sub">식약처 연동 · 2023~2026년 · 총 120주차 · 234건</p>
 
-<div class="toolbar">
-  <span class="toolbar-info">총 <b>120</b>주차 수록 · 누적 <b>234</b>건</span>
-  <div class="search-box">
-    <span class="search-icon">🔍</span>
-    <input type="text" id="searchInput" class="search-input" placeholder="키워드 검색 (제목·내용)" oninput="setSearch(this.value)">
-    <button class="search-clear" id="searchClearBtn" onclick="clearSearch()" hidden>✕</button>
-  </div>
-  <button class="btn-tool" onclick="expandAll()">모두 펼치기</button>
-  <button class="btn-tool" onclick="collapseAll()">이전 주 접기</button>
-  <button class="btn-tool btn-copy-all" onclick="copyAllArchive(this)">📋 전체 아카이브 복사</button>
-</div>
-<div class="filter-bar">
-  <span id="yearFilterGroup" class="year-filter-group">
-    <span class="filter-label">연도</span>
-    <button class="filter-btn" onclick="setYear(this,'all')">전체</button>
-    <button class="filter-btn active" onclick="setYear(this,'2026')">2026년</button><button class="filter-btn" onclick="setYear(this,'2025')">2025년</button><button class="filter-btn" onclick="setYear(this,'2024')">2024년</button><button class="filter-btn" onclick="setYear(this,'2023')">2023년</button>
-    <div class="filter-sep"></div>
-  </span>
-  <span class="filter-label">상태</span>
-  <button class="filter-btn active" onclick="setStatus(this,'all')">전체</button>
-  <button class="filter-btn" onclick="setStatus(this,'시행')">시행</button>
-  <button class="filter-btn" onclick="setStatus(this,'예고')">예고</button>
-</div>
-<div class="search-status" id="searchStatus" hidden></div>
-<div class="main" id="searchResults" hidden></div>
+    <div class="nav-group">
+      <div class="nav-group-label">연도</div>
+      <div id="yearFilterGroup">
+        <button class="nav-item" onclick="setYear(this,'all')">전체</button>
+        <button class="nav-item active" onclick="setYear(this,'2026')">2026년</button><button class="nav-item" onclick="setYear(this,'2025')">2025년</button><button class="nav-item" onclick="setYear(this,'2024')">2024년</button><button class="nav-item" onclick="setYear(this,'2023')">2023년</button>
+      </div>
+    </div>
 
-<div id="normalView">
+    <div class="nav-group">
+      <div class="nav-group-label">상태</div>
+      <button class="nav-item active" onclick="setStatus(this,'all')">전체</button>
+      <button class="nav-item" onclick="setStatus(this,'시행')">시행</button>
+      <button class="nav-item" onclick="setStatus(this,'예고')">예고</button>
+    </div>
 
-<div class="cat-overview">
-  <div class="cat-overview-title">유형별 현황 <span class="cat-overview-sub">— 클릭하면 바로 아래에 해당 유형 목록이 펼쳐집니다</span></div>
-  <div class="cat-grid">
-    <button class="cat-card active" data-cat-btn data-cat="all" onclick="setCategory(this,'all')">
-      <span class="cat-card-icon">📋</span>
-      <span class="cat-card-label">전체</span>
-      <span class="cat-card-count">234<small>건</small></span>
-    </button><button class="cat-card cat-label cat-card-priority" data-cat-btn data-cat="표시기준" onclick="setCategory(this,'표시기준')">
-      <span class="cat-card-icon">🏷️</span>
-      <span class="cat-card-label">표시기준·표시사항</span>
-      <span class="cat-card-count">42<small>건</small></span>
-    </button><button class="cat-card cat-spec" data-cat-btn data-cat="기준규격" onclick="setCategory(this,'기준규격')">
-      <span class="cat-card-icon">📐</span>
-      <span class="cat-card-label">기준·규격</span>
-      <span class="cat-card-count">46<small>건</small></span>
-    </button><button class="cat-card cat-safety" data-cat-btn data-cat="안전관리" onclick="setCategory(this,'안전관리')">
-      <span class="cat-card-icon">🛡️</span>
-      <span class="cat-card-label">안전관리·위생</span>
-      <span class="cat-card-count">83<small>건</small></span>
-    </button><button class="cat-card cat-trade" data-cat-btn data-cat="수입수출" onclick="setCategory(this,'수입수출')">
-      <span class="cat-card-icon">🚢</span>
-      <span class="cat-card-label">수입·수출</span>
-      <span class="cat-card-count">5<small>건</small></span>
-    </button><button class="cat-card cat-biz" data-cat-btn data-cat="영업인증" onclick="setCategory(this,'영업인증')">
-      <span class="cat-card-icon">🏭</span>
-      <span class="cat-card-label">영업·인증</span>
-      <span class="cat-card-count">3<small>건</small></span>
-    </button><button class="cat-card cat-etc" data-cat-btn data-cat="기타" onclick="setCategory(this,'기타')">
-      <span class="cat-card-icon">📁</span>
-      <span class="cat-card-label">기타</span>
-      <span class="cat-card-count">55<small>건</small></span>
+    <div class="nav-group">
+      <div class="nav-group-label">유형</div>
+      <button class="nav-item active" data-cat-btn data-cat="all" onclick="setCategory(this,'all')">
+      <span>전체</span><span class="nav-item-count">234</span>
+    </button><button class="nav-item nav-item-priority" data-cat-btn data-cat="표시기준" onclick="setCategory(this,'표시기준')">
+      <span>🏷️ 표시기준·표시사항</span><span class="nav-item-count">42</span>
+    </button><button class="nav-item" data-cat-btn data-cat="기준규격" onclick="setCategory(this,'기준규격')">
+      <span>📐 기준·규격</span><span class="nav-item-count">46</span>
+    </button><button class="nav-item" data-cat-btn data-cat="안전관리" onclick="setCategory(this,'안전관리')">
+      <span>🛡️ 안전관리·위생</span><span class="nav-item-count">83</span>
+    </button><button class="nav-item" data-cat-btn data-cat="수입수출" onclick="setCategory(this,'수입수출')">
+      <span>🚢 수입·수출</span><span class="nav-item-count">5</span>
+    </button><button class="nav-item" data-cat-btn data-cat="영업인증" onclick="setCategory(this,'영업인증')">
+      <span>🏭 영업·인증</span><span class="nav-item-count">3</span>
+    </button><button class="nav-item" data-cat-btn data-cat="기타" onclick="setCategory(this,'기타')">
+      <span>📁 기타</span><span class="nav-item-count">55</span>
     </button>
-  </div>
-  <div class="cat-dropdown" id="catDropdown" hidden></div>
-</div>
+    </div>
+  </aside>
 
-<div class="kpi-row">
-  <div class="kpi">
-    <div class="kpi-label">이번 주 수집</div>
-    <div class="kpi-val">0<span class="kpi-unit">건</span></div>
-  </div>
-  <div class="kpi blue">
-    <div class="kpi-label">시행 확정</div>
-    <div class="kpi-val">0<span class="kpi-unit">건</span></div>
-  </div>
-  <div class="kpi orange">
-    <div class="kpi-label">예고·검토</div>
-    <div class="kpi-val">0<span class="kpi-unit">건</span></div>
-  </div>
-  <div class="kpi red">
-    <div class="kpi-label">누적 주차</div>
-    <div class="kpi-val">120<span class="kpi-unit">주</span></div>
-  </div>
-</div>
+  <div class="main-col">
+    <div class="toolbar">
+      <div class="search-box">
+        <span class="search-icon">🔍</span>
+        <input type="text" id="searchInput" class="search-input" placeholder="키워드 검색 (제목·내용)" oninput="setSearch(this.value)">
+        <button class="search-clear" id="searchClearBtn" onclick="clearSearch()" hidden>✕</button>
+      </div>
+      <button class="btn-tool" onclick="expandAll()">모두 펼치기</button>
+      <button class="btn-tool" onclick="collapseAll()">이전 주 접기</button>
+      <button class="btn-tool btn-copy-all" onclick="copyAllArchive(this)">📋 전체 아카이브 복사</button>
+    </div>
+    <div class="search-status" id="searchStatus" hidden></div>
+    <div class="main" id="searchResults" hidden></div>
 
-
-<div class="card label-spotlight">
-  <div class="card-header cat-label-header">🏷️ 표시사항 변경 추적 — 최근 12건</div>
-  <div class="label-spotlight-body">
-    
-    <a class="spotlight-item" href="https://www.mfds.go.kr/brd/m_209/view.do?seq=44285&amp;srchFr=&amp;srchTo=&amp;srchWord=&amp;srchTp=&amp;itm_seq_1=0&amp;itm_seq_2=0&amp;multi_itm_seq=0&amp;company_cd=&amp;company_nm=&amp;page=1" target="_blank" rel="noopener">
-      <span class="tag status-notice">예고</span>
-      <span class="spotlight-title">「식품 등의 표시ㆍ광고에 관한 법률 시행규칙」 일부개정령(안) 입법예고(식품의약품안전처공고 제2026-386호)</span>
-      <span class="spotlight-meta">2026-08-07 · 2026년 34주차</span>
-      <span class="spotlight-summary">식품 제조·가공·수입 업체는 참깨·들깨·아몬드·캐슈너트 원재료 사용 시 알레르기 유발물질 표시를 반영해야 하며, AI 가상 영상 및 전문가 추천 등을 활용한 광고 시 처분 기준이 강화·신설되므로 마케팅 문구 점검이 필요합니다. 본 개정안에 대한 의견제출 마감일은 2026년 9월 17일까지입니다.</span>
-    </a>
-    <a class="spotlight-item" href="https://www.mfds.go.kr/brd/m_209/view.do?seq=44282&amp;srchFr=&amp;srchTo=&amp;srchWord=&amp;srchTp=&amp;itm_seq_1=0&amp;itm_seq_2=0&amp;multi_itm_seq=0&amp;company_cd=&amp;company_nm=&amp;Data_stts_gubun=C1002&amp;page=1" target="_blank" rel="noopener">
-      <span class="tag status-notice">예고</span>
-      <span class="spotlight-title">「유전자변형식품등의 표시기준」 일부개정고시(안) 행정예고(식품의약품안전처 공고 제2026-389호, 2026. 8. 5.)</span>
-      <span class="spotlight-meta">2026-08-05 · 2026년 33주차</span>
-      <span class="spotlight-summary">당류 및 식용유지류 관련 식품 제조·판매·수입 업체는 유전자변형식품 표시기준 적용 시점이 2026년 12월 31일로 1년 단축됨에 따라 관련 라벨링 및 표시 실무 준비를 앞당겨야 하며, 개정안에 대한 의견 제출 마감일은 2026년 8월 25일까지입니다.</span>
-    </a>
-    <a class="spotlight-item" href="https://www.mfds.go.kr/brd/m_209/view.do?seq=44274&amp;srchFr=&amp;srchTo=&amp;srchWord=&amp;srchTp=&amp;itm_seq_1=0&amp;itm_seq_2=0&amp;multi_itm_seq=0&amp;company_cd=&amp;company_nm=&amp;Data_stts_gubun=C1002&amp;page=1" target="_blank" rel="noopener">
-      <span class="tag status-notice">예고</span>
-      <span class="spotlight-title">「건강기능식품에 관한 법률 시행규칙」일부개정령(안) 입법예고(식약처 공고 제2026-338호)</span>
-      <span class="spotlight-meta">2026-07-21 · 2026년 30주차</span>
-      <span class="spotlight-summary">건강기능식품 제조업체는 GMP 재가공 기준, 맞춤형 건강기능식품 내포장 표시, 자가품질검사 기록 관리시스템 설치 등 개정되는 실무 기준을 점검하고 준비해야 하며, 개정안에 대한 의견이 있는 경우 2026년 8월 31일까지 제출해야 합니다.</span>
-    </a>
-    <a class="spotlight-item" href="https://www.mfds.go.kr/brd/m_209/view.do?seq=44263&amp;srchFr=&amp;srchTo=&amp;srchWord=&amp;srchTp=&amp;itm_seq_1=0&amp;itm_seq_2=0&amp;multi_itm_seq=0&amp;company_cd=&amp;company_nm=&amp;Data_stts_gubun=C1002&amp;page=1" target="_blank" rel="noopener">
-      <span class="tag status-notice">예고</span>
-      <span class="spotlight-title">「건강기능식품의 표시기준」 일부개정고시(안) 행정예고(공고 제2026-314호,  2026.7.1.)</span>
-      <span class="spotlight-meta">2026-07-01 · 2026년 27주차</span>
-      <span class="spotlight-summary">건강기능식품 제조·판매 업체는 변경되는 건강기능식품 및 GMP 도안 내용을 확인해야 하며, 개정안에 의견이 있는 경우 2026년 8월 31일까지 의견서를 제출해야 합니다.</span>
-    </a>
-    <a class="spotlight-item" href="https://www.mfds.go.kr/brd/m_209/view.do?seq=44257&amp;srchFr=&amp;srchTo=&amp;srchWord=&amp;srchTp=&amp;itm_seq_1=0&amp;itm_seq_2=0&amp;multi_itm_seq=0&amp;company_cd=&amp;company_nm=&amp;Data_stts_gubun=C1002&amp;page=2" target="_blank" rel="noopener">
-      <span class="tag status-notice">예고</span>
-      <span class="spotlight-title">식품등의 표시기준 일부개정고시(안) 행정예고 알림(식품의약품안전처 공고 제2026-296호)</span>
-      <span class="spotlight-meta">2026-06-22 · 2026년 26주차</span>
-      <span class="spotlight-summary">식품 제조·수입·유통업체는 향후 확정될 표시기준 변경사항에 맞춰 제품 포장재(라벨)의 수정 및 교체 준비가 필요할 수 있습니다.</span>
-    </a>
-    <a class="spotlight-item" href="https://www.mfds.go.kr/brd/m_209/view.do?seq=44217&amp;srchFr=&amp;srchTo=&amp;srchWord=&amp;srchTp=&amp;itm_seq_1=0&amp;itm_seq_2=0&amp;multi_itm_seq=0&amp;company_cd=&amp;company_nm=&amp;Data_stts_gubun=C1002&amp;page=3" target="_blank" rel="noopener">
-      <span class="tag status-notice">예고</span>
-      <span class="spotlight-title">「유전자변형식품등의 표시기준」 일부개정고시(안) 행정예고(식약처 공고 제2026-114호, 2026.2.27)</span>
-      <span class="spotlight-meta">2026-02-27 · 2026년 9주차</span>
-      <span class="spotlight-summary">유전자변형 원재료를 사용하거나 관련 식품을 제조·수입·판매하는 업체는 향후 확정될 개정 기준에 맞추어 포장지 표시 사항 수정 및 관리 절차 재검토가 필요할 수 있습니다.</span>
-    </a>
-    <a class="spotlight-item" href="https://www.mfds.go.kr/brd/m_209/view.do?seq=44194&amp;srchFr=&amp;srchTo=&amp;srchWord=&amp;srchTp=&amp;itm_seq_1=0&amp;itm_seq_2=0&amp;multi_itm_seq=0&amp;company_cd=&amp;company_nm=&amp;Data_stts_gubun=C1002&amp;page=4" target="_blank" rel="noopener">
-      <span class="tag status-notice">예고</span>
-      <span class="spotlight-title">건강기능식품의 기준 및 규격 일부개정고시(안) 행정예고(식약처 공고 제2025-524호)</span>
-      <span class="spotlight-meta">2025-12-23 · 2025년 52주차</span>
-      <span class="spotlight-summary">키토올리고당의 기능성 추가로 관련 건강기능식품 제품 생산 및 출시 활성화가 기대되며, 개선된 영양성분 및 유산균수 시험법에 맞춘 정확한 품질 및 분석 관리가 요구됩니다. 본 개정안에 대한 의견은 2026년 2월 23일까지 제출할 수 있습니다.</span>
-    </a>
-    <a class="spotlight-item" href="https://www.mfds.go.kr/brd/m_209/view.do?seq=44193&amp;srchFr=&amp;srchTo=&amp;srchWord=&amp;srchTp=&amp;itm_seq_1=0&amp;itm_seq_2=0&amp;multi_itm_seq=0&amp;company_cd=&amp;company_nm=&amp;Data_stts_gubun=C1002&amp;page=4" target="_blank" rel="noopener">
-      <span class="tag status-notice">예고</span>
-      <span class="spotlight-title">식품의 기준 및 규격 일부개정고시(안) 행정예고(식약처 공고 제2025-523호)</span>
-      <span class="spotlight-meta">2025-12-23 · 2025년 52주차</span>
-      <span class="spotlight-summary">비살균 액란을 원료로 사용하는 식품 제조업체는 가열살균·멸균 공정을 준수해야 하며, 특수의료용도식품 제조 업체 및 농약 관련 농산물 유통·수입 업체는 신설·개정된 영양성분 및 잔류허용기준에 대한 준비가 필요하며 개정안에 대한 의견은 2026년 2월 23일까지 제출할 수 있습니다.</span>
-    </a>
-    <a class="spotlight-item" href="https://www.mfds.go.kr/brd/m_209/view.do?seq=44187&amp;srchFr=&amp;srchTo=&amp;srchWord=&amp;srchTp=&amp;itm_seq_1=0&amp;itm_seq_2=0&amp;multi_itm_seq=0&amp;company_cd=&amp;company_nm=&amp;Data_stts_gubun=C1002&amp;page=4" target="_blank" rel="noopener">
-      <span class="tag status-notice">예고</span>
-      <span class="spotlight-title">「어린이 기호식품 품질인증기준」 일부개정고시안 행정예고(제2025-491호)</span>
-      <span class="spotlight-meta">2025-12-05 · 2025년 49주차</span>
-      <span class="spotlight-summary">어린이 기호식품 품질인증을 신청하거나 유지하려는 제조·판매 업체는 당알코올 사용량을 10% 미만으로 관리해야 하며 모범업소 대신 위생등급제 기준을 적용받게 됩니다. 해당 개정안에 대해 의견이 있는 경우 2025년 12월 26일까지 식약처에 의견서를 제출해야 합니다.</span>
-    </a>
-    <a class="spotlight-item" href="https://www.mfds.go.kr/brd/m_209/view.do?seq=44179&amp;srchFr=&amp;srchTo=&amp;srchWord=&amp;srchTp=&amp;itm_seq_1=0&amp;itm_seq_2=0&amp;multi_itm_seq=0&amp;company_cd=&amp;company_nm=&amp;Data_stts_gubun=C1002&amp;page=4" target="_blank" rel="noopener">
-      <span class="tag status-notice">예고</span>
-      <span class="spotlight-title">「수입식품안전관리 특별법 시행규칙」일부개정령(안) 입법예고(공고 제2025-460호)</span>
-      <span class="spotlight-meta">2025-11-17 · 2025년 47주차</span>
-      <span class="spotlight-summary">창업보육센터의 영업 사무소 활용 및 경미한 표시위반 검사 완화로 영업자 부담이 줄어드는 한편, 인터넷 구매대행업자의 광고 안내문구 게시와 공유 사무실 이용자의 시설사용계약서 제출 등 신규 의무가 발생하므로 관련 수입·구매대행 업체는 2025년 12월 29일까지 의견을 제출하거나 미리 실무 절차를 점검해야 합니다.</span>
-    </a>
-    <a class="spotlight-item" href="https://www.mfds.go.kr/brd/m_209/view.do?seq=44173&amp;srchFr=&amp;srchTo=&amp;srchWord=&amp;srchTp=&amp;itm_seq_1=0&amp;itm_seq_2=0&amp;multi_itm_seq=0&amp;company_cd=&amp;company_nm=&amp;Data_stts_gubun=C1002&amp;page=5" target="_blank" rel="noopener">
-      <span class="tag status-notice">예고</span>
-      <span class="spotlight-title">「식품등의 표시기준」 일부개정고시(안) 행정예고(공고 제2025-448호, 2025.11.6.)</span>
-      <span class="spotlight-meta">2025-11-06 · 2025년 45주차</span>
-      <span class="spotlight-summary">커피 제조·수입 업체는 원두 잔류카페인 함량 기준에 맞춰 디카페인 표시를 정비해야 하고, 주류협업제품 관련 업체는 주표시면의 주류 표시 강화 규정을 반영해야 하며 2026년 1월 6일까지 의견 제출이 가능합니다.</span>
-    </a>
-    <a class="spotlight-item" href="https://www.mfds.go.kr/brd/m_209/view.do?seq=44160&amp;srchFr=&amp;srchTo=&amp;srchWord=&amp;srchTp=&amp;itm_seq_1=0&amp;itm_seq_2=0&amp;multi_itm_seq=0&amp;company_cd=&amp;company_nm=&amp;Data_stts_gubun=C1002&amp;page=5" target="_blank" rel="noopener">
-      <span class="tag status-notice">예고</span>
-      <span class="spotlight-title">「나트륨·당류 저감 표시기준」 일부개정고시(안) 행정예고(식품의약품안전처 공고 제2025-401호)</span>
-      <span class="spotlight-meta">2025-09-25 · 2025년 39주차</span>
-      <span class="spotlight-summary">본문에는 구체적인 개정 내용 및 의견제출 마감일이 명시되어 있지 않으나, 나트륨·당류 저감 표시기준 개정에 대한 의견 수렴이 진행 중이므로 향후 발표되는 세부 개정 사항에 대한 모니터링이 필요합니다.</span>
-    </a>
-  </div>
-</div>
-
-
+    <div id="normalView">
+      
 <div class="card monthly-summary">
   <div class="card-header monthly-header">🗓️ 월간 통합 요약</div>
   <div class="monthly-summary-body">
@@ -616,8 +491,97 @@
   </div>
 </div>
 
-<main class="main" id="weeksMain">
-  
+      <div class="stat-strip">
+        <span><b>0</b>건 이번 주</span><span class="stat-dot"></span>
+        <span><b>0</b>건 시행 확정</span><span class="stat-dot"></span>
+        <span><b>0</b>건 예고·검토</span><span class="stat-dot"></span>
+        <span><b>120</b>주 누적</span>
+      </div>
+      <div class="cat-dropdown" id="catDropdown" hidden></div>
+
+      
+<div class="card label-spotlight">
+  <div class="card-header cat-label-header">🏷️ 표시사항 변경 추적 — 최근 12건</div>
+  <div class="label-spotlight-body">
+    
+    <a class="spotlight-item" href="https://www.mfds.go.kr/brd/m_209/view.do?seq=44285&amp;srchFr=&amp;srchTo=&amp;srchWord=&amp;srchTp=&amp;itm_seq_1=0&amp;itm_seq_2=0&amp;multi_itm_seq=0&amp;company_cd=&amp;company_nm=&amp;page=1" target="_blank" rel="noopener">
+      <span class="tag status-notice">예고</span>
+      <span class="spotlight-title">「식품 등의 표시ㆍ광고에 관한 법률 시행규칙」 일부개정령(안) 입법예고(식품의약품안전처공고 제2026-386호)</span>
+      <span class="spotlight-meta">2026-08-07 · 2026년 34주차</span>
+      <span class="spotlight-summary">식품 제조·가공·수입 업체는 참깨·들깨·아몬드·캐슈너트 원재료 사용 시 알레르기 유발물질 표시를 반영해야 하며, AI 가상 영상 및 전문가 추천 등을 활용한 광고 시 처분 기준이 강화·신설되므로 마케팅 문구 점검이 필요합니다. 본 개정안에 대한 의견제출 마감일은 2026년 9월 17일까지입니다.</span>
+    </a>
+    <a class="spotlight-item" href="https://www.mfds.go.kr/brd/m_209/view.do?seq=44282&amp;srchFr=&amp;srchTo=&amp;srchWord=&amp;srchTp=&amp;itm_seq_1=0&amp;itm_seq_2=0&amp;multi_itm_seq=0&amp;company_cd=&amp;company_nm=&amp;Data_stts_gubun=C1002&amp;page=1" target="_blank" rel="noopener">
+      <span class="tag status-notice">예고</span>
+      <span class="spotlight-title">「유전자변형식품등의 표시기준」 일부개정고시(안) 행정예고(식품의약품안전처 공고 제2026-389호, 2026. 8. 5.)</span>
+      <span class="spotlight-meta">2026-08-05 · 2026년 33주차</span>
+      <span class="spotlight-summary">당류 및 식용유지류 관련 식품 제조·판매·수입 업체는 유전자변형식품 표시기준 적용 시점이 2026년 12월 31일로 1년 단축됨에 따라 관련 라벨링 및 표시 실무 준비를 앞당겨야 하며, 개정안에 대한 의견 제출 마감일은 2026년 8월 25일까지입니다.</span>
+    </a>
+    <a class="spotlight-item" href="https://www.mfds.go.kr/brd/m_209/view.do?seq=44274&amp;srchFr=&amp;srchTo=&amp;srchWord=&amp;srchTp=&amp;itm_seq_1=0&amp;itm_seq_2=0&amp;multi_itm_seq=0&amp;company_cd=&amp;company_nm=&amp;Data_stts_gubun=C1002&amp;page=1" target="_blank" rel="noopener">
+      <span class="tag status-notice">예고</span>
+      <span class="spotlight-title">「건강기능식품에 관한 법률 시행규칙」일부개정령(안) 입법예고(식약처 공고 제2026-338호)</span>
+      <span class="spotlight-meta">2026-07-21 · 2026년 30주차</span>
+      <span class="spotlight-summary">건강기능식품 제조업체는 GMP 재가공 기준, 맞춤형 건강기능식품 내포장 표시, 자가품질검사 기록 관리시스템 설치 등 개정되는 실무 기준을 점검하고 준비해야 하며, 개정안에 대한 의견이 있는 경우 2026년 8월 31일까지 제출해야 합니다.</span>
+    </a>
+    <a class="spotlight-item" href="https://www.mfds.go.kr/brd/m_209/view.do?seq=44263&amp;srchFr=&amp;srchTo=&amp;srchWord=&amp;srchTp=&amp;itm_seq_1=0&amp;itm_seq_2=0&amp;multi_itm_seq=0&amp;company_cd=&amp;company_nm=&amp;Data_stts_gubun=C1002&amp;page=1" target="_blank" rel="noopener">
+      <span class="tag status-notice">예고</span>
+      <span class="spotlight-title">「건강기능식품의 표시기준」 일부개정고시(안) 행정예고(공고 제2026-314호,  2026.7.1.)</span>
+      <span class="spotlight-meta">2026-07-01 · 2026년 27주차</span>
+      <span class="spotlight-summary">건강기능식품 제조·판매 업체는 변경되는 건강기능식품 및 GMP 도안 내용을 확인해야 하며, 개정안에 의견이 있는 경우 2026년 8월 31일까지 의견서를 제출해야 합니다.</span>
+    </a>
+    <a class="spotlight-item" href="https://www.mfds.go.kr/brd/m_209/view.do?seq=44257&amp;srchFr=&amp;srchTo=&amp;srchWord=&amp;srchTp=&amp;itm_seq_1=0&amp;itm_seq_2=0&amp;multi_itm_seq=0&amp;company_cd=&amp;company_nm=&amp;Data_stts_gubun=C1002&amp;page=2" target="_blank" rel="noopener">
+      <span class="tag status-notice">예고</span>
+      <span class="spotlight-title">식품등의 표시기준 일부개정고시(안) 행정예고 알림(식품의약품안전처 공고 제2026-296호)</span>
+      <span class="spotlight-meta">2026-06-22 · 2026년 26주차</span>
+      <span class="spotlight-summary">식품 제조·수입·유통업체는 향후 확정될 표시기준 변경사항에 맞춰 제품 포장재(라벨)의 수정 및 교체 준비가 필요할 수 있습니다.</span>
+    </a>
+    <a class="spotlight-item spotlight-extra" hidden href="https://www.mfds.go.kr/brd/m_209/view.do?seq=44217&amp;srchFr=&amp;srchTo=&amp;srchWord=&amp;srchTp=&amp;itm_seq_1=0&amp;itm_seq_2=0&amp;multi_itm_seq=0&amp;company_cd=&amp;company_nm=&amp;Data_stts_gubun=C1002&amp;page=3" target="_blank" rel="noopener">
+      <span class="tag status-notice">예고</span>
+      <span class="spotlight-title">「유전자변형식품등의 표시기준」 일부개정고시(안) 행정예고(식약처 공고 제2026-114호, 2026.2.27)</span>
+      <span class="spotlight-meta">2026-02-27 · 2026년 9주차</span>
+      <span class="spotlight-summary">유전자변형 원재료를 사용하거나 관련 식품을 제조·수입·판매하는 업체는 향후 확정될 개정 기준에 맞추어 포장지 표시 사항 수정 및 관리 절차 재검토가 필요할 수 있습니다.</span>
+    </a>
+    <a class="spotlight-item spotlight-extra" hidden href="https://www.mfds.go.kr/brd/m_209/view.do?seq=44194&amp;srchFr=&amp;srchTo=&amp;srchWord=&amp;srchTp=&amp;itm_seq_1=0&amp;itm_seq_2=0&amp;multi_itm_seq=0&amp;company_cd=&amp;company_nm=&amp;Data_stts_gubun=C1002&amp;page=4" target="_blank" rel="noopener">
+      <span class="tag status-notice">예고</span>
+      <span class="spotlight-title">건강기능식품의 기준 및 규격 일부개정고시(안) 행정예고(식약처 공고 제2025-524호)</span>
+      <span class="spotlight-meta">2025-12-23 · 2025년 52주차</span>
+      <span class="spotlight-summary">키토올리고당의 기능성 추가로 관련 건강기능식품 제품 생산 및 출시 활성화가 기대되며, 개선된 영양성분 및 유산균수 시험법에 맞춘 정확한 품질 및 분석 관리가 요구됩니다. 본 개정안에 대한 의견은 2026년 2월 23일까지 제출할 수 있습니다.</span>
+    </a>
+    <a class="spotlight-item spotlight-extra" hidden href="https://www.mfds.go.kr/brd/m_209/view.do?seq=44193&amp;srchFr=&amp;srchTo=&amp;srchWord=&amp;srchTp=&amp;itm_seq_1=0&amp;itm_seq_2=0&amp;multi_itm_seq=0&amp;company_cd=&amp;company_nm=&amp;Data_stts_gubun=C1002&amp;page=4" target="_blank" rel="noopener">
+      <span class="tag status-notice">예고</span>
+      <span class="spotlight-title">식품의 기준 및 규격 일부개정고시(안) 행정예고(식약처 공고 제2025-523호)</span>
+      <span class="spotlight-meta">2025-12-23 · 2025년 52주차</span>
+      <span class="spotlight-summary">비살균 액란을 원료로 사용하는 식품 제조업체는 가열살균·멸균 공정을 준수해야 하며, 특수의료용도식품 제조 업체 및 농약 관련 농산물 유통·수입 업체는 신설·개정된 영양성분 및 잔류허용기준에 대한 준비가 필요하며 개정안에 대한 의견은 2026년 2월 23일까지 제출할 수 있습니다.</span>
+    </a>
+    <a class="spotlight-item spotlight-extra" hidden href="https://www.mfds.go.kr/brd/m_209/view.do?seq=44187&amp;srchFr=&amp;srchTo=&amp;srchWord=&amp;srchTp=&amp;itm_seq_1=0&amp;itm_seq_2=0&amp;multi_itm_seq=0&amp;company_cd=&amp;company_nm=&amp;Data_stts_gubun=C1002&amp;page=4" target="_blank" rel="noopener">
+      <span class="tag status-notice">예고</span>
+      <span class="spotlight-title">「어린이 기호식품 품질인증기준」 일부개정고시안 행정예고(제2025-491호)</span>
+      <span class="spotlight-meta">2025-12-05 · 2025년 49주차</span>
+      <span class="spotlight-summary">어린이 기호식품 품질인증을 신청하거나 유지하려는 제조·판매 업체는 당알코올 사용량을 10% 미만으로 관리해야 하며 모범업소 대신 위생등급제 기준을 적용받게 됩니다. 해당 개정안에 대해 의견이 있는 경우 2025년 12월 26일까지 식약처에 의견서를 제출해야 합니다.</span>
+    </a>
+    <a class="spotlight-item spotlight-extra" hidden href="https://www.mfds.go.kr/brd/m_209/view.do?seq=44179&amp;srchFr=&amp;srchTo=&amp;srchWord=&amp;srchTp=&amp;itm_seq_1=0&amp;itm_seq_2=0&amp;multi_itm_seq=0&amp;company_cd=&amp;company_nm=&amp;Data_stts_gubun=C1002&amp;page=4" target="_blank" rel="noopener">
+      <span class="tag status-notice">예고</span>
+      <span class="spotlight-title">「수입식품안전관리 특별법 시행규칙」일부개정령(안) 입법예고(공고 제2025-460호)</span>
+      <span class="spotlight-meta">2025-11-17 · 2025년 47주차</span>
+      <span class="spotlight-summary">창업보육센터의 영업 사무소 활용 및 경미한 표시위반 검사 완화로 영업자 부담이 줄어드는 한편, 인터넷 구매대행업자의 광고 안내문구 게시와 공유 사무실 이용자의 시설사용계약서 제출 등 신규 의무가 발생하므로 관련 수입·구매대행 업체는 2025년 12월 29일까지 의견을 제출하거나 미리 실무 절차를 점검해야 합니다.</span>
+    </a>
+    <a class="spotlight-item spotlight-extra" hidden href="https://www.mfds.go.kr/brd/m_209/view.do?seq=44173&amp;srchFr=&amp;srchTo=&amp;srchWord=&amp;srchTp=&amp;itm_seq_1=0&amp;itm_seq_2=0&amp;multi_itm_seq=0&amp;company_cd=&amp;company_nm=&amp;Data_stts_gubun=C1002&amp;page=5" target="_blank" rel="noopener">
+      <span class="tag status-notice">예고</span>
+      <span class="spotlight-title">「식품등의 표시기준」 일부개정고시(안) 행정예고(공고 제2025-448호, 2025.11.6.)</span>
+      <span class="spotlight-meta">2025-11-06 · 2025년 45주차</span>
+      <span class="spotlight-summary">커피 제조·수입 업체는 원두 잔류카페인 함량 기준에 맞춰 디카페인 표시를 정비해야 하고, 주류협업제품 관련 업체는 주표시면의 주류 표시 강화 규정을 반영해야 하며 2026년 1월 6일까지 의견 제출이 가능합니다.</span>
+    </a>
+    <a class="spotlight-item spotlight-extra" hidden href="https://www.mfds.go.kr/brd/m_209/view.do?seq=44160&amp;srchFr=&amp;srchTo=&amp;srchWord=&amp;srchTp=&amp;itm_seq_1=0&amp;itm_seq_2=0&amp;multi_itm_seq=0&amp;company_cd=&amp;company_nm=&amp;Data_stts_gubun=C1002&amp;page=5" target="_blank" rel="noopener">
+      <span class="tag status-notice">예고</span>
+      <span class="spotlight-title">「나트륨·당류 저감 표시기준」 일부개정고시(안) 행정예고(식품의약품안전처 공고 제2025-401호)</span>
+      <span class="spotlight-meta">2025-09-25 · 2025년 39주차</span>
+      <span class="spotlight-summary">본문에는 구체적인 개정 내용 및 의견제출 마감일이 명시되어 있지 않으나, 나트륨·당류 저감 표시기준 개정에 대한 의견 수렴이 진행 중이므로 향후 발표되는 세부 개정 사항에 대한 모니터링이 필요합니다.</span>
+    </a>
+  </div>
+  <button class="spotlight-more-btn" onclick="toggleSpotlightMore(this)">나머지 7건 더보기 ↓</button>
+</div>
+
+      <main class="main" id="weeksMain">
+        
 <div class="week-section" data-year="2026" data-months="" id="week-2026-35">
   <button class="accordion-btn open" onclick="toggleWeek(this)">
     <div class="week-left">
@@ -2804,7 +2768,9 @@
     </div>
   </div>
 </div>
-</main>
+      </main>
+    </div>
+  </div>
 </div>
 
 <textarea id="archive-full-text" style="display:none">[2026년 34주차 2026-08-17~2026-08-23]
@@ -3157,16 +3123,17 @@
 </footer>
 
 <script>
+// 2026-08-26 리뉴얼: 기본 테마가 다크→라이트로 바뀌어 "속성 없음 = 라이트"가 기준이
+// 됐다(예전엔 "속성 없음 = 다크"였음) — 아이콘/토글 판정 기준을 이에 맞춰 반전.
 function applyThemeIcon() {
-  const isLight = document.documentElement.getAttribute('data-theme') === 'light';
+  const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
   const icon = document.getElementById('themeToggleIcon');
-  const label = document.getElementById('themeToggleLabel');
-  if (icon) icon.textContent = isLight ? '☀️' : '🌙';
-  if (label) label.textContent = isLight ? '다크 모드' : '라이트 모드';
+  if (icon) icon.textContent = isDark ? '☀️' : '🌙';
+  if (icon) icon.parentElement.title = isDark ? '라이트 모드로 전환' : '다크 모드로 전환';
 }
 function toggleTheme() {
-  const cur = document.documentElement.getAttribute('data-theme') === 'light' ? 'light' : 'dark';
-  const next = cur === 'light' ? 'dark' : 'light';
+  const cur = document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'light';
+  const next = cur === 'dark' ? 'light' : 'dark';
   document.documentElement.setAttribute('data-theme', next);
   localStorage.setItem('theme', next);
   applyThemeIcon();
@@ -3180,6 +3147,13 @@ function toggleWeek(btn) {
 function toggleItem(header) {
   const item = header.closest('.law-item');
   if (item.classList.contains('expandable')) item.classList.toggle('expanded');
+}
+function toggleSpotlightMore(btn) {
+  const body = btn.previousElementSibling;
+  const extras = body.querySelectorAll('.spotlight-extra');
+  const expanding = extras.length > 0 && extras[0].hidden;
+  extras.forEach(it => it.hidden = !expanding);
+  btn.textContent = expanding ? '접기 ↑' : `나머지 ${extras.length}건 더보기 ↓`;
 }
 function expandAll() {
   document.querySelectorAll('.accordion-btn').forEach(b => {
@@ -3300,8 +3274,8 @@ function clearAllFilters() {
   document.querySelector('[data-cat-btn][data-cat="all"]').classList.add('active');
 
   activeSt = 'all';
-  document.querySelectorAll('.filter-btn[onclick*="setStatus"]').forEach(b => b.classList.remove('active'));
-  document.querySelector(`.filter-btn[onclick="setStatus(this,'all')"]`).classList.add('active');
+  document.querySelectorAll('.nav-item[onclick*="setStatus"]').forEach(b => b.classList.remove('active'));
+  document.querySelector(`.nav-item[onclick="setStatus(this,'all')"]`).classList.add('active');
 
   applyFilter();
 }
@@ -3317,13 +3291,13 @@ function clearSearch() {
   setSearch('');
 }
 async function setYear(btn, val) {
-  document.querySelectorAll('.filter-btn[onclick*="setYear"]').forEach(b=>b.classList.remove('active'));
+  document.querySelectorAll('.nav-item[onclick*="setYear"]').forEach(b=>b.classList.remove('active'));
   btn.classList.add('active'); activeYear=val;
   if (val !== LATEST_YEAR) await ensureAllYearsLoaded();
   applyFilter();
 }
 function setStatus(btn, val) {
-  document.querySelectorAll('.filter-btn[onclick*="setStatus"]').forEach(b=>b.classList.remove('active'));
+  document.querySelectorAll('.nav-item[onclick*="setStatus"]').forEach(b=>b.classList.remove('active'));
   btn.classList.add('active'); activeSt=val; applyFilter();
 }
 async function setCategory(btn, val) {
@@ -3367,8 +3341,8 @@ async function handleDeepLink() {
 
   if (activeYear !== 'all') {
     activeYear = 'all';
-    document.querySelectorAll('.filter-btn[onclick*="setYear"]').forEach(b => b.classList.remove('active'));
-    document.querySelector(`.filter-btn[onclick="setYear(this,'all')"]`).classList.add('active');
+    document.querySelectorAll('.nav-item[onclick*="setYear"]').forEach(b => b.classList.remove('active'));
+    document.querySelector(`.nav-item[onclick="setYear(this,'all')"]`).classList.add('active');
     applyFilter();
   }
 
