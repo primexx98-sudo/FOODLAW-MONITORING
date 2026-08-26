@@ -7258,7 +7258,7 @@
     }
   ],
   "total_weeks": 120,
-  "last_updated": "2026-08-26T02:25:14.285346",
+  "last_updated": "2026-08-26T06:31:14.830031",
   "months": {
     "2026-08": {
       "label": "2026년 8월",
@@ -7343,6 +7343,26 @@
     "2024-04": {
       "label": "2024년 4월",
       "item_count": 3,
+      "monthly_summary": ""
+    },
+    "2024-05": {
+      "label": "2024년 5월",
+      "item_count": 1,
+      "monthly_summary": ""
+    },
+    "2024-06": {
+      "label": "2024년 6월",
+      "item_count": 4,
+      "monthly_summary": ""
+    },
+    "2024-07": {
+      "label": "2024년 7월",
+      "item_count": 10,
+      "monthly_summary": ""
+    },
+    "2024-08": {
+      "label": "2024년 8월",
+      "item_count": 11,
       "monthly_summary": ""
     }
   }
