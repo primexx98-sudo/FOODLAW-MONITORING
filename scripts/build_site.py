@@ -28,6 +28,7 @@ INTEREST_KEYWORDS = ["건강기능식품", "기능성", "건기식"]
 
 LABEL_SPOTLIGHT_CATEGORY = "표시기준"
 LABEL_SPOTLIGHT_LIMIT = 12
+MONTHLY_VISIBLE_LIMIT = 5
 
 
 def is_interest(item):
@@ -395,8 +396,13 @@ def render_monthly_summary(months_data):
         summary = m.get("monthly_summary", "")
         count = m.get("item_count", 0)
         open_cls = "open" if i == 0 else ""
+        # 2026-08-27: 달이 쌓일수록 카드가 무한히 길어지는 문제(사용자 피드백) —
+        # 최근 MONTHLY_VISIBLE_LIMIT개월만 보이고 나머지는 표시사항 변경 추적과
+        # 동일한 "더보기" 패턴(hidden 속성 + extra 클래스)으로 접어둔다.
+        extra_cls = " month-extra" if i >= MONTHLY_VISIBLE_LIMIT else ""
+        extra_attr = " hidden" if i >= MONTHLY_VISIBLE_LIMIT else ""
         rows.append(f"""
-    <div class="month-section">
+    <div class="month-section{extra_cls}"{extra_attr}>
       <button class="month-btn {open_cls}" onclick="toggleWeek(this)">
         <span class="month-label">{esc(label)}</span>
         <span class="month-count">{count}건</span>
@@ -408,12 +414,18 @@ def render_monthly_summary(months_data):
         <button class="btn-copy" onclick="jumpToMonth('{esc(mk)}')">이 달 항목 {count}건 보기 →</button>
       </div>
     </div>""")
+    remaining = len(entries) - MONTHLY_VISIBLE_LIMIT
+    more_btn = (
+        f'<button class="spotlight-more-btn" onclick="toggleMonthlyMore(this)">지난 달 {remaining}건 더보기 ↓</button>'
+        if remaining > 0 else ""
+    )
     return f"""
 <div class="card monthly-summary">
   <div class="card-header monthly-header">🗓️ 월간 통합 요약</div>
   <div class="monthly-summary-body">
     {"".join(rows)}
   </div>
+  {more_btn}
 </div>"""
 
 
@@ -619,15 +631,21 @@ def build():
     .stat-strip .stat-dot{{width:3px;height:3px;border-radius:50%;background:var(--muted);flex-shrink:0;}}
 
     /* ── CATEGORY DROPDOWN (사이드바 유형 클릭 시 본문에 결과 표시) ── */
+    /* 2026-08-27: max-width+margin:auto로 아래 .main(주차 목록, 860px 중앙정렬)과
+       동일한 폭·정렬 기준을 공유 — 예전엔 좌우 margin만 고정값(24px)이라 넓은
+       화면에서 카드가 주차 박스보다 훨씬 넓어 보이는 폭 불일치가 있었음. */
     .cat-dropdown{{
       background:var(--surface);border:1px solid var(--hairline);border-radius:10px;
-      padding:12px;margin:16px 24px;
+      padding:12px;max-width:820px;margin:16px auto;
     }}
     .cat-dropdown-status{{font-size:0.78rem;color:var(--muted);padding:2px 2px 10px;}}
     .cat-dropdown-status b{{color:var(--primary-text);}}
 
     /* ── LABEL SPOTLIGHT ── */
-    .card{{background:var(--surface);border:none;border-left:3px solid transparent;border-radius:12px;margin:0 24px 16px;overflow:hidden;}}
+    /* 2026-08-27: max-width+margin:auto로 아래 .main(주차 목록, 860px 중앙정렬)과
+       폭·정렬을 맞춤 — 이전엔 좌우 margin 고정값(24px)이라 넓은 화면에서 카드
+       좌우 테두리가 주차 박스보다 훨씬 넓게 벌어져 보였음(사용자 피드백). */
+    .card{{background:var(--surface);border:none;border-left:3px solid transparent;border-radius:12px;max-width:820px;margin:0 auto 16px;overflow:hidden;}}
     .card-header{{background:transparent;color:var(--body-text);border-bottom:1px solid var(--hairline);
       font-weight:700;font-size:0.92rem;padding:12px 16px;}}
     /* 2026-08-26: 카드 종류별 시각적 차별화 — 표시사항 변경 추적(큐레이션 목록)은
@@ -656,6 +674,7 @@ def build():
       order:3;flex-basis:100%;font-size:0.78rem;line-height:1.5;color:var(--muted);margin-top:2px;
       display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;
     }}
+    /* 월간 통합 요약의 "더보기" 버튼도 동일 스타일을 공유(2026-08-27) */
     .spotlight-more-btn{{
       display:block;width:100%;background:none;border:none;border-top:1px solid var(--hairline);
       color:var(--primary-text);font-size:0.8rem;font-weight:600;padding:10px 8px;
@@ -665,6 +684,32 @@ def build():
 
     /* ── MAIN ── */
     .main{{max-width:860px;margin:0 auto;padding:14px 20px 80px;}}
+
+    /* ── CONTENT GRID (2026-08-27: 표시사항 변경 추적을 왼쪽 컬럼, 주차 목록을
+       오른쪽 컬럼에 각각 세로로 쌓는 2단 배치 — 사용자가 원한 배치는 "카드 폭을
+       주차 박스에 맞춰 한 줄로 쌓기"가 아니라 이 2단 레이아웃이었음(이전 라운드는
+       오해였음, 정정). 화면이 좁아지면(<=1080px) 왼쪽 컬럼이 위로 올라와 기존처럼
+       단일 컬럼 세로 쌓기로 폴백. ── */
+    .content-grid{{
+      display:grid;grid-template-columns:320px 1fr;gap:16px;align-items:start;
+      max-width:1220px;margin:0 auto;padding:0 24px 80px;
+    }}
+    .content-left{{min-width:0;}}
+    .content-right{{min-width:0;padding:14px 0 0;}}
+    /* 왼쪽 컬럼 카드가 다른 곳(월간요약 등)처럼 자체 max-width:820px로 다시 안
+       퍼지지 않도록 컬럼 폭을 그대로 채우게 함 — 컬럼 자체가 이미 320px로 좁음. */
+    .content-left .card{{max-width:none;margin:0 0 16px;}}
+    /* 왼쪽 컬럼은 항상 320px로 좁게 고정되므로(뷰포트 폭과 무관), 태그+제목+날짜를
+       한 줄 flex로 두면 375px 모바일에서 겪었던 것과 동일하게 제목이 심하게
+       줄바꿈됨 — 뷰포트 미디어쿼리가 아니라 이 컬럼 자체를 스코프로 삼아 태그·
+       날짜는 윗줄, 제목은 아랫줄 전체너비로 항상 분리한다. */
+    .content-left .spotlight-item{{flex-wrap:wrap;row-gap:4px;}}
+    .content-left .spotlight-item .tag{{order:0;}}
+    .content-left .spotlight-meta{{order:1;}}
+    .content-left .spotlight-title{{order:2;flex-basis:100%;}}
+    @media(max-width:1080px){{
+      .content-grid{{grid-template-columns:1fr;}}
+    }}
 
     /* ── WEEK ── */
     .week-section{{
@@ -856,6 +901,7 @@ def build():
     @media(max-width:600px){{
       .week-range{{display:none;}}
       .card{{margin:0 12px 16px;}}
+      .cat-dropdown{{margin:16px 12px;}}
       .stat-strip{{padding:14px 16px;}}
       .toolbar{{flex-wrap:wrap;padding:14px 16px;}}
       /* 2026-08-20: 기존엔 .search-box의 flex:1(=flex-basis:0%)이 width:100%보다
@@ -931,11 +977,14 @@ def build():
       </div>
       <div class="cat-dropdown" id="catDropdown" hidden></div>
 
-      {label_spotlight_html}
-
-      <main class="main" id="weeksMain">
-        {weeks_html}
-      </main>
+      <div class="content-grid">
+        <div class="content-left">
+          {label_spotlight_html}
+        </div>
+        <main class="content-right" id="weeksMain">
+          {weeks_html}
+        </main>
+      </div>
     </div>
   </div>
 </div>
@@ -979,6 +1028,13 @@ function toggleSpotlightMore(btn) {{
   extras.forEach(it => it.hidden = !expanding);
   btn.textContent = expanding ? '접기 ↑' : `나머지 ${{extras.length}}건 더보기 ↓`;
 }}
+function toggleMonthlyMore(btn) {{
+  const body = btn.previousElementSibling;
+  const extras = body.querySelectorAll('.month-extra');
+  const expanding = extras.length > 0 && extras[0].hidden;
+  extras.forEach(it => it.hidden = !expanding);
+  btn.textContent = expanding ? '접기 ↑' : `지난 달 ${{extras.length}}건 더보기 ↓`;
+}}
 function expandAll() {{
   document.querySelectorAll('.accordion-btn').forEach(b => {{
     b.classList.add('open');
@@ -986,11 +1042,13 @@ function expandAll() {{
   }});
 }}
 function collapseAll() {{
-  document.querySelectorAll('.accordion-btn:not(.open)').forEach(b => {{
-    b.classList.add('open');b.nextElementSibling.classList.add('open');
-  }});
-  document.querySelectorAll('.accordion-btn.open:not(:first-of-type)').forEach(b => {{
-    b.classList.remove('open');b.nextElementSibling.classList.remove('open');
+  // 이전엔 ':first-of-type'이 각 .week-section(부모)마다 개별 스코프로 평가돼
+  // 모든 accordion-btn이 "자기 부모 안의 첫 번째"라 :not(:first-of-type)이 아무것도
+  // 못 골라내는 버그가 있었음(= 사실상 전체 펼치기와 동일하게 동작). DOM 순서상 첫
+  // 번째(최신 주차)만 열어두고 나머지는 명시적으로 닫도록 인덱스 기반으로 수정.
+  document.querySelectorAll('.accordion-btn').forEach((b, i) => {{
+    b.classList.toggle('open', i === 0);
+    b.nextElementSibling.classList.toggle('open', i === 0);
   }});
 }}
 
