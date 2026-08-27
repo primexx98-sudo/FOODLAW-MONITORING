@@ -26,21 +26,32 @@ CALL_INTERVAL_SEC = 13
 
 
 def call_gemini(client, prompt: str) -> str:
-    try:
-        resp = client.models.generate_content(model=MODEL, contents=prompt)
-    except Exception as e:
-        msg = str(e)
-        if "RESOURCE_EXHAUSTED" in msg or "429" in msg:
-            wait = 30
-            m = re.search(r"retryDelay['\"]?:\s*['\"]?(\d+)", msg)
-            if m:
-                wait = int(m.group(1)) + 2
-            print(f"    429 재시도 대기 {wait}초...")
-            time.sleep(wait)
+    # 2026-08-27: 429(RESOURCE_EXHAUSTED)만 재시도하고 503(UNAVAILABLE, "모델 과부하 —
+    # 보통 일시적")은 바로 실패 처리해서, 월간 요약이 며칠째 계속 빈 채로 남는 문제가
+    # 있었음(사용자 발견: 대시보드가 계속 옛날 달 요약만 보여줌). 503도 최대 3회까지
+    # 짧게 재시도하도록 통합.
+    max_attempts = 3
+    for attempt in range(max_attempts):
+        try:
             resp = client.models.generate_content(model=MODEL, contents=prompt)
-        else:
-            raise
-    return resp.text.strip()
+            return resp.text.strip()
+        except Exception as e:
+            msg = str(e)
+            if attempt == max_attempts - 1:
+                raise
+            if "RESOURCE_EXHAUSTED" in msg or "429" in msg:
+                wait = 30
+                m = re.search(r"retryDelay['\"]?:\s*['\"]?(\d+)", msg)
+                if m:
+                    wait = int(m.group(1)) + 2
+                print(f"    429 재시도 대기 {wait}초...")
+                time.sleep(wait)
+            elif "UNAVAILABLE" in msg or "503" in msg:
+                wait = 20 * (attempt + 1)
+                print(f"    503(과부하) 재시도 대기 {wait}초...")
+                time.sleep(wait)
+            else:
+                raise
 
 
 def summarize_item(client, item: dict) -> dict:
