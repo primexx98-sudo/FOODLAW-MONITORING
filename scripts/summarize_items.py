@@ -1,54 +1,55 @@
-"""Gemini API(무료 티어)를 사용해 archive.json 각 항목의 핵심 내용·업계 영향·주간 요약을 생성합니다.
+"""Groq API(무료 티어)를 사용해 archive.json 각 항목의 핵심 내용·업계 영향·주간 요약을 생성합니다.
 
 2026-07-22: Anthropic Claude API(유료 크레딧 필요)에서 Google Gemini API(무료 티어)로 교체.
-API 키는 https://aistudio.google.com/apikey 에서 무료로 발급받는다.
+2026-08-27: Gemini가 하루 20회로 무료 한도가 너무 빡빡하고(월간 통합 요약이 계속
+밀림) 503(과부하) 응답까지 잦아져서 Groq API(무료 티어)로 재교체. 모델은
+openai/gpt-oss-120b — Groq가 llama-3.3-70b-versatile을 단종(2026-08-16)시키며
+권장한 후속 모델 중 한국어 벤치마크(KMMLU 등)가 더 준수한 쪽을 선택.
+API 키는 https://console.groq.com/keys 에서 무료로 발급받는다.
 
 실행:
-  $env:GEMINI_API_KEY="AIza..."
+  $env:GROQ_API_KEY="gsk_..."
   python scripts/summarize_items.py
 """
 
 import datetime
 import json
 import os
-import re
 import sys
 import time
 
 REPO_ROOT = os.path.join(os.path.dirname(__file__), "..")
 ARCHIVE_PATH = os.path.join(REPO_ROOT, "data", "archive.json")
 
-MODEL = "gemini-flash-latest"
-# 2026-07-23: gemini-flash-latest(=gemini-3.6-flash)는 무료 티어가 분당 5회로
-# 빡빡해서, 호출 간격을 13초로 늘리고 429는 재시도 힌트(retryDelay)만큼 기다렸다가
-# 한 번 더 시도한다.
-CALL_INTERVAL_SEC = 13
+MODEL = "openai/gpt-oss-120b"
+# 2026-08-27: Groq 무료 티어는 이 모델 기준 분당 30회/분당 8K토큰/일 1,000회로
+# Gemini(분당 5회/일 20회)보다 훨씬 넉넉해서 호출 간격을 5초로 단축.
+CALL_INTERVAL_SEC = 5
 
 
-def call_gemini(client, prompt: str) -> str:
-    # 2026-08-27: 429(RESOURCE_EXHAUSTED)만 재시도하고 503(UNAVAILABLE, "모델 과부하 —
-    # 보통 일시적")은 바로 실패 처리해서, 월간 요약이 며칠째 계속 빈 채로 남는 문제가
-    # 있었음(사용자 발견: 대시보드가 계속 옛날 달 요약만 보여줌). 503도 최대 3회까지
-    # 짧게 재시도하도록 통합.
-    max_attempts = 3
+def call_groq(client, prompt: str, json_mode: bool = False) -> str:
+    # 429(rate limit)·5xx(서버 과부하) 모두 최대 4회까지 지수백오프로 재시도.
+    max_attempts = 4
+    kwargs = {"response_format": {"type": "json_object"}} if json_mode else {}
     for attempt in range(max_attempts):
         try:
-            resp = client.models.generate_content(model=MODEL, contents=prompt)
-            return resp.text.strip()
+            resp = client.chat.completions.create(
+                model=MODEL,
+                messages=[{"role": "user", "content": prompt}],
+                **kwargs,
+            )
+            return resp.choices[0].message.content.strip()
         except Exception as e:
             msg = str(e)
             if attempt == max_attempts - 1:
                 raise
-            if "RESOURCE_EXHAUSTED" in msg or "429" in msg:
-                wait = 30
-                m = re.search(r"retryDelay['\"]?:\s*['\"]?(\d+)", msg)
-                if m:
-                    wait = int(m.group(1)) + 2
-                print(f"    429 재시도 대기 {wait}초...")
+            if "rate_limit" in msg.lower() or "429" in msg:
+                wait = 15 * (attempt + 1)
+                print(f"    429(rate limit) 재시도 대기 {wait}초...")
                 time.sleep(wait)
-            elif "UNAVAILABLE" in msg or "503" in msg:
-                wait = 20 * (attempt + 1)
-                print(f"    503(과부하) 재시도 대기 {wait}초...")
+            elif "503" in msg or "internal" in msg.lower() or "overloaded" in msg.lower() or "unavailable" in msg.lower():
+                wait = 15 * (attempt + 1)
+                print(f"    5xx(서버 과부하) 재시도 대기 {wait}초...")
                 time.sleep(wait)
             else:
                 raise
@@ -119,7 +120,7 @@ def summarize_item(client, item: dict) -> dict:
 
     text = ""
     try:
-        text = call_gemini(client, prompt)
+        text = call_groq(client, prompt, json_mode=True)
         # JSON 블록 추출
         if "```json" in text:
             text = text.split("```json")[1].split("```")[0].strip()
@@ -165,7 +166,7 @@ def summarize_week(client, week: dict) -> str:
 - 다음 주 예상 발령 가능성이 있는 항목 언급 (있을 경우)"""
 
     try:
-        return call_gemini(client, prompt)
+        return call_groq(client, prompt)
     except Exception as e:
         print(f"    주간 요약 오류: {e}")
         return ""
@@ -206,7 +207,7 @@ def summarize_month(client, label: str, items: list) -> str:
 - 한국어로만 작성"""
 
     try:
-        return call_gemini(client, prompt)
+        return call_groq(client, prompt)
     except Exception as e:
         print(f"    월간 요약 오류: {e}")
         return ""
@@ -222,19 +223,19 @@ def needs_update(item: dict) -> bool:
 
 
 def main():
-    api_key = os.environ.get("GEMINI_API_KEY", "")
+    api_key = os.environ.get("GROQ_API_KEY", "")
     if not api_key:
-        print("[경고] GEMINI_API_KEY 환경변수가 설정되지 않아 요약 단계를 건너뜁니다.")
-        print("  발급: https://aistudio.google.com/apikey (무료)")
-        print("  PowerShell: $env:GEMINI_API_KEY='AIza...'")
-        print("  GitHub Actions: Settings → Secrets → GEMINI_API_KEY 등록")
+        print("[경고] GROQ_API_KEY 환경변수가 설정되지 않아 요약 단계를 건너뜁니다.")
+        print("  발급: https://console.groq.com/keys (무료)")
+        print("  PowerShell: $env:GROQ_API_KEY='gsk_...'")
+        print("  GitHub Actions: Settings → Secrets → GROQ_API_KEY 등록")
         return
 
     try:
-        from google import genai
-        client = genai.Client(api_key=api_key)
+        from groq import Groq
+        client = Groq(api_key=api_key)
     except ImportError:
-        print("[오류] google-genai 패키지가 없습니다: pip install google-genai")
+        print("[오류] groq 패키지가 없습니다: pip install groq")
         sys.exit(1)
 
     with open(ARCHIVE_PATH, encoding="utf-8") as f:
@@ -242,16 +243,14 @@ def main():
 
     total_items = sum(len(w.get("items", [])) for w in archive["weeks"])
 
-    # 2026-07-23: 2023~2026년 과거 데이터 198건을 한 번에 백필하면서 무료 티어
-    # 일일 호출 한도(실측 20회)를 훨씬 초과하는 문제가 생김. 사용자 결정:
-    # "가장 최근 것부터 요약하고, 그 다음 과거 자료는 하루 10건씩" —
-    # 당해년도(CURRENT_YEAR) 항목은 무제한 처리(원래도 주당 2~4건 수준이라
-    # 한도에 안 걸림), 그 이전 항목은 하루 HISTORICAL_ITEM_CAP건만 처리.
-    # 전체 호출(항목 요약 + 주간 요약 합산)은 DAILY_TOTAL_CAP으로 다시 한 번
-    # 안전장치를 둔다.
+    # 2026-07-23: 2023~2026년 과거 데이터 198건을 한 번에 백필하면서 Gemini 무료
+    # 티어 일일 호출 한도(실측 20회)를 훨씬 초과하는 문제가 생겨 이 캡 구조를 도입.
+    # 2026-08-27 Groq 전환: 무료 한도가 일 1,000회로 대폭 늘어서(같은 날 재실행
+    # 등 예외 상황 대비 안전마진만 남기고) 캡을 상향 — 당해년도 항목은 여전히
+    # 무제한, 과거 항목은 하루 HISTORICAL_ITEM_CAP건.
     CURRENT_YEAR = str(datetime.datetime.now().year)
-    HISTORICAL_ITEM_CAP = 10
-    DAILY_TOTAL_CAP = 18
+    HISTORICAL_ITEM_CAP = 30
+    DAILY_TOTAL_CAP = 120
 
     all_pairs = [
         (week, item)

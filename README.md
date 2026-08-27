@@ -8,7 +8,7 @@
 
 1. 이 저장소를 GitHub에 push
 2. Settings → Pages → `/docs` 폴더로 배포 설정
-3. (선택) Settings → Secrets → `GEMINI_API_KEY`(Gemini API 키, 무료 발급 https://aistudio.google.com/apikey, 항목 요약 생성용) 등록
+3. (선택) Settings → Secrets → `GROQ_API_KEY`(Groq API 키, 무료 발급 https://console.groq.com/keys, 항목 요약 생성용) 등록
 4. Actions → `주간 식품 법령 수집` → `Run workflow` 로 첫 실행
 
 자세한 내용은 `설계서.md` 참고.

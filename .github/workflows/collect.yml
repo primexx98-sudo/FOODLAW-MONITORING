@@ -27,9 +27,9 @@ jobs:
       - name: 법령 데이터 수집
         run: python scripts/collect_all.py
 
-      - name: Gemini API로 신규 항목 요약
+      - name: Groq API로 신규 항목 요약
         env:
-          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
         run: python scripts/summarize_items.py
 
       - name: HTML 사이트 빌드
