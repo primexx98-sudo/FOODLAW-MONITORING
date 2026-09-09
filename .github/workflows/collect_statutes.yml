@@ -30,6 +30,9 @@ jobs:
           LAW_API_KEY: ${{ secrets.LAW_API_KEY }}
         run: python scripts/collect_statutes.py
 
+      - name: AI 의미검색용 임베딩 생성 (로컬 모델, API 호출 없음)
+        run: python scripts/embed_statutes.py
+
       - name: 법령자료 사이트 빌드
         run: python scripts/build_statute_site.py
 

@@ -1,2 +1,4 @@
 __pycache__/
 *.pyc
+_embed_model_cache/
+_model_test/

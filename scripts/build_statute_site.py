@@ -9,6 +9,7 @@
 import html
 import json
 import os
+import re
 from datetime import datetime, timezone
 
 DATA_PATH = os.path.join(os.path.dirname(__file__), "..", "data", "statute_library.json")
@@ -31,6 +32,25 @@ def fmt_date(raw: str) -> str:
     if raw and len(raw) == 8:
         return f"{raw[:4]}-{raw[4:6]}-{raw[6:]}"
     return raw or "-"
+
+
+# law.go.kr이 조문 본문을 "다음 각호와 같다.1. 일반사항가. ~2. 제품명" 식으로 항목 사이
+# 줄바꿈 없이 통짜로 준다 — 실측(건강기능식품의 표시기준 제5조)으로 가독성 문제 확인.
+# 숫자 항목("1." "2.")과 괄호 항목("1)" "2)")은 뒤에 바로 한글이 오는 패턴이 문장 중간
+# 소수점(예: "0.15밀리그램")·조문 참조("제1항")와 겹치지 않아 안전하게 줄바꿈 삽입 가능.
+# 가/나/다/라 같은 한글 항목 기호는 "다."(평서문 종결) 등과 구분이 안 돼(예: "~한다."가
+# 매 문장 끝에 나옴) 잘못 끊길 위험이 커서 이번 스코프에서는 건드리지 않음 — "가."만
+# 예외적으로 처리(문장 종결어미로는 거의 안 쓰여 상대적으로 안전).
+_NUM_ITEM_RE = re.compile(r"(\d{1,3}\.)(?=\s?[가-힣「(])")
+_PAREN_ITEM_RE = re.compile(r"(\d{1,3}\))(?=\s?[가-힣])")
+_GA_ITEM_RE = re.compile(r"(가\.)(?=\s?[가-힣「(])")
+
+
+def format_legal_text(text: str) -> str:
+    text = _NUM_ITEM_RE.sub(r"\n\1", text)
+    text = _PAREN_ITEM_RE.sub(r"\n\1", text)
+    text = _GA_ITEM_RE.sub(r"\n\1", text)
+    return text.strip()
 
 
 def build_search_text(statute: dict) -> str:
@@ -112,9 +132,9 @@ def render_articles(statute: dict) -> str:
         label = f'제{esc(a["no"])}조' if a["no"] else ""
         title = f'({esc(a["title"])})' if a["title"] else ""
         items.append(f'''
-          <details class="article-item">
+          <details class="article-item" data-kind="article" data-no="{esc(a["no"])}">
             <summary>{label}{title if label else esc(a["title"]) or "전문"}</summary>
-            <div class="article-text">{esc(a["text"])}</div>
+            <div class="article-text">{esc(format_legal_text(a["text"]))}</div>
           </details>''')
     return f'<div class="statute-articles">{"".join(items)}</div>'
 
@@ -129,7 +149,7 @@ def render_annexes(statute: dict) -> str:
     items = []
     for a in annexes:
         items.append(f'''
-          <details class="article-item">
+          <details class="article-item" data-kind="annex" data-no="{esc(a["no"])}">
             <summary>{esc(a["title"]) or "별표"}</summary>
             <pre class="annex-text mono">{esc(a["text"])}</pre>
           </details>''')
@@ -264,6 +284,25 @@ def build():
       padding:16px 24px;border-bottom:1px solid var(--hairline);}}
     .stat-strip b{{font-family:'JetBrains Mono',monospace;font-size:0.95rem;color:var(--body-text);font-weight:700;}}
 
+    .btn-tool{{background:var(--surface-elevated);border:1px solid var(--hairline);color:var(--body-text);
+      padding:7px 12px;border-radius:8px;font-size:0.78rem;cursor:pointer;white-space:nowrap;}}
+    .btn-tool:hover{{background:var(--hairline);}}
+    .btn-tool.active{{background:rgba(80,70,229,.14);border-color:var(--primary);color:var(--primary-text);font-weight:700;}}
+    .ai-status{{padding:6px 24px;font-size:0.78rem;color:var(--primary-text);background:var(--canvas);
+      border-bottom:1px solid var(--hairline);}}
+    .ai-status[hidden]{{display:none;}}
+    .ai-results{{padding:10px 24px;background:var(--surface);border-bottom:1px solid var(--hairline);}}
+    .ai-results[hidden]{{display:none;}}
+    .ai-results-label{{font-size:0.72rem;font-weight:700;color:var(--primary-text);text-transform:uppercase;
+      letter-spacing:.04em;margin-bottom:6px;}}
+    .ai-result-item{{display:block;width:100%;text-align:left;background:var(--surface-elevated);
+      border:1px solid var(--hairline);border-radius:8px;padding:8px 10px;margin-bottom:6px;
+      cursor:pointer;font-family:inherit;color:var(--body-text);font-size:0.82rem;}}
+    .ai-result-item:hover{{border-color:var(--primary);}}
+    .ai-result-score{{color:var(--muted);font-size:0.72rem;font-family:'JetBrains Mono',monospace;margin-left:6px;}}
+    @keyframes pulseHighlight{{0%,100%{{background:transparent;}}50%{{background:rgba(80,70,229,.18);}}}}
+    .deep-link-highlight{{animation:pulseHighlight 1s ease-in-out 2;}}
+
     .main{{max-width:820px;margin:16px auto;padding:0 24px 60px;}}
     #normalView[hidden], #searchResults[hidden]{{display:none;}}
 
@@ -335,7 +374,10 @@ def build():
         <span class="search-icon">🔍</span>
         <input class="search-input" type="text" placeholder="법령명·조문 내용 검색" oninput="setSearch(this.value)">
       </div>
+      <button class="btn-tool" id="aiToggleBtn" onclick="toggleAiMode()">🧠 AI 의미검색</button>
     </div>
+    <div class="ai-status" id="aiStatus" hidden></div>
+    <div class="ai-results" id="aiResults" hidden></div>
     <div class="search-status" id="searchStatus" hidden></div>
     <div class="stat-strip">
       총 <b>{len(statutes)}</b>개 법령·고시 추적 중 <span class="mono">·</span>
@@ -364,6 +406,7 @@ def build():
   function setSearch(v) {{
     searchQuery = (v || '').trim().toLowerCase();
     applyFilter();
+    scheduleAiSearch();
   }}
 
   function setCategory(cat) {{
@@ -426,6 +469,124 @@ def build():
       b.classList.toggle('active', b.dataset.cat === 'all');
     }});
     applyFilter();
+  }}
+
+  // ── AI 의미검색 (임베딩 기반, 완전 클라이언트 사이드 — API 호출 없음) ──
+  // 정적 사이트라 서버가 없어서, 법령·고시 조문·별표는 수집 시점(GitHub Actions)에
+  // 로컬 임베딩 모델(embed_statutes.py)로 미리 벡터화해 embeddings.json에 저장해두고,
+  // 검색 시점엔 브라우저 안에서 정확히 같은 모델(@huggingface/transformers)로 검색어만
+  // 그 자리에서 벡터화해 비교한다 — API 요청이 전혀 없어 트래픽이 몰려도 할당량 걱정이
+  // 없다(모델을 바꾸면 embed_statutes.py의 MODEL_REPO도 반드시 함께 바꿀 것).
+  var aiEnabled = false;
+  var aiLoading = false;
+  var aiPipeline = null;
+  var aiChunks = null; // [{{key, kind, no, vec: Float32Array}}]
+  var aiDebounceTimer = null;
+
+  function toggleAiMode() {{
+    aiEnabled = !aiEnabled;
+    document.getElementById('aiToggleBtn').classList.toggle('active', aiEnabled);
+    if (!aiEnabled) {{
+      document.getElementById('aiResults').hidden = true;
+      return;
+    }}
+    if (!aiPipeline && !aiLoading) {{
+      loadAiModel();
+    }} else if (searchQuery) {{
+      runAiSearch();
+    }}
+  }}
+
+  async function loadAiModel() {{
+    aiLoading = true;
+    var status = document.getElementById('aiStatus');
+    status.hidden = false;
+    status.textContent = 'AI 모델 로딩 중... (최초 1회, 약 118MB — 다음 방문부터는 브라우저 캐시로 즉시 로딩됩니다)';
+    try {{
+      var mod = await import('https://cdn.jsdelivr.net/npm/@huggingface/transformers@4.2.0/+esm');
+      aiPipeline = await mod.pipeline('feature-extraction', 'Xenova/multilingual-e5-small', {{ dtype: 'q8' }});
+
+      var res = await fetch('embeddings.json');
+      var data = await res.json();
+      aiChunks = data.chunks.map(function(c) {{
+        var bin = atob(c.vec);
+        var bytes = new Uint8Array(bin.length);
+        for (var i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+        return {{ key: c.key, kind: c.kind, no: c.no, vec: new Float32Array(bytes.buffer) }};
+      }});
+
+      status.textContent = 'AI 의미검색 준비 완료 (' + aiChunks.length + '개 조문·별표 인덱싱됨)';
+      setTimeout(function() {{ status.hidden = true; }}, 2500);
+      aiLoading = false;
+      if (searchQuery) runAiSearch();
+    }} catch (e) {{
+      status.textContent = 'AI 모델 로딩 실패: ' + e.message;
+      aiLoading = false;
+      console.error(e);
+    }}
+  }}
+
+  function scheduleAiSearch() {{
+    if (!aiEnabled || !aiPipeline) return;
+    clearTimeout(aiDebounceTimer);
+    aiDebounceTimer = setTimeout(runAiSearch, 400);
+  }}
+
+  async function runAiSearch() {{
+    var results = document.getElementById('aiResults');
+    if (!searchQuery || !aiPipeline || !aiChunks) {{
+      results.hidden = true;
+      return;
+    }}
+    var output = await aiPipeline('query: ' + searchQuery, {{ pooling: 'mean', normalize: true }});
+    var q = output.data;
+
+    // 법령·고시 하나당 가장 잘 맞는 청크 하나만 남겨 대표점수로 삼음(같은 법령의
+    // 여러 조문이 결과 목록을 도배하지 않도록).
+    var bestByKey = {{}};
+    for (var i = 0; i < aiChunks.length; i++) {{
+      var c = aiChunks[i];
+      var sim = 0;
+      for (var d = 0; d < q.length; d++) sim += q[d] * c.vec[d];
+      if (!bestByKey[c.key] || sim > bestByKey[c.key].sim) {{
+        bestByKey[c.key] = {{ sim: sim, kind: c.kind, no: c.no }};
+      }}
+    }}
+    var ranked = Object.keys(bestByKey).map(function(key) {{
+      var b = bestByKey[key];
+      return {{ key: key, sim: b.sim, kind: b.kind, no: b.no }};
+    }}).sort(function(a, b) {{ return b.sim - a.sim; }}).slice(0, 5);
+
+    // onclick 문자열 조합 대신 data-* 속성 + addEventListener 사용 — HTML 속성값 안에
+    // JS 문자열 리터럴을 따옴표로 또 감싸는 이스케이핑을 피해 실수 여지를 없앤다.
+    results.innerHTML = '<div class="ai-results-label">🧠 의미 기반 추천</div>' + ranked.map(function(r) {{
+      var nameEl = document.querySelector('#statute-' + CSS.escape(r.key) + ' .statute-name');
+      var name = nameEl ? nameEl.textContent : r.key;
+      return '<button class="ai-result-item" data-key="' + r.key + '" data-kind="' + r.kind + '" data-no="' + r.no + '">' +
+        name + '<span class="ai-result-score">유사도 ' + r.sim.toFixed(2) + '</span></button>';
+    }}).join('');
+    results.hidden = false;
+    results.querySelectorAll('.ai-result-item').forEach(function(btn) {{
+      btn.addEventListener('click', function() {{
+        jumpToChunk(btn.dataset.key, btn.dataset.kind, btn.dataset.no);
+      }});
+    }});
+  }}
+
+  function jumpToChunk(key, kind, no) {{
+    clearAllFilters();
+    var card = document.getElementById('statute-' + key);
+    if (!card) return;
+    card.scrollIntoView({{ behavior: 'smooth', block: 'start' }});
+    var detail = card.querySelector('[data-kind="' + kind + '"][data-no="' + CSS.escape(no) + '"]');
+    if (detail) {{
+      detail.open = true;
+      setTimeout(function() {{
+        detail.scrollIntoView({{ behavior: 'smooth', block: 'center' }});
+        detail.classList.add('deep-link-highlight');
+        setTimeout(function() {{ detail.classList.remove('deep-link-highlight'); }}, 2000);
+      }}, 300);
+    }}
   }}
 </script>
 </body>
