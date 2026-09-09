@@ -20,6 +20,7 @@ from statute_config import STATUTES, MAX_HISTORY_PER_STATUTE
 from statute_diff_utils import (
     normalize_law_articles,
     normalize_admrul_articles,
+    normalize_annexes,
     diff_articles,
 )
 
@@ -92,10 +93,15 @@ def search_current(statute: dict) -> dict | None:
         }
 
 
-def fetch_articles(statute: dict, version_id: str) -> list:
-    """항상 실제로 조회를 시도한다 — 방대한 공전류처럼 API가 본문을 안 주는 경우도
+def fetch_detail(statute: dict, version_id: str) -> dict:
+    """조문과 별표를 한 번의 API 호출로 함께 가져온다 — 응답 하나에 둘 다 들어있다는 걸
+    뒤늦게 발견해서(원래는 별표를 PDF 링크로만 다룰 수 있다고 판단했었음), 별도 호출을
+    추가하는 대신 기존 호출의 응답을 더 활용하도록 함(호출 수가 배로 늘면 CI에서 이미
+    느린 수집 시간이 더 늘어남).
+
+    항상 실제로 조회를 시도한다 — 방대한 공전류처럼 API가 조문 본문을 안 주는 경우도
     있지만, 그건 응답을 받아본 뒤에야 알 수 있어(normalize 단계에서 빈 리스트로 판정)
-    설정값(text_available)만으로 미리 건너뛰면 잘못된 예외 처리가 굳어질 위험이 있다."""
+    설정값만으로 미리 건너뛰면 잘못된 예외 처리가 굳어질 위험이 있다."""
     target = statute["api_target"]
     id_param = {"MST": version_id} if target == "law" else {"ID": version_id}
     params = {"OC": API_KEY, "target": target, "type": "JSON", **id_param}
@@ -104,11 +110,13 @@ def fetch_articles(statute: dict, version_id: str) -> list:
     data = r.json()
 
     if target == "law":
-        jomun = data.get("법령", {}).get("조문", {}).get("조문단위", [])
-        return normalize_law_articles(jomun)
+        law = data.get("법령", {})
+        jomun = law.get("조문", {}).get("조문단위", [])
+        return {"articles": normalize_law_articles(jomun), "annexes": normalize_annexes(law.get("별표"))}
     else:
-        jomun = data.get("AdmRulService", {}).get("조문내용", [])
-        return normalize_admrul_articles(jomun)
+        service = data.get("AdmRulService", {})
+        jomun = service.get("조문내용", [])
+        return {"articles": normalize_admrul_articles(jomun), "annexes": normalize_annexes(service.get("별표"))}
 
 
 def detail_url(statute: dict) -> str:
@@ -160,11 +168,13 @@ def collect():
             continue
 
         try:
-            new_articles = fetch_articles(statute, meta["version_id"])
+            detail = fetch_detail(statute, meta["version_id"])
         except Exception as e:
             print(f"[법령자료] '{statute['name']}' 본문 조회 오류: {e}")
             continue
 
+        new_articles = detail["articles"]
+        new_annexes = detail["annexes"]
         text_available = bool(new_articles)
         entry = by_key.get(key) or {
             "key": key, "name": statute["name"], "category": statute["category"],
@@ -172,20 +182,23 @@ def collect():
         }
         entry["text_available"] = text_available
 
-        if prev_current and text_available and prev_current.get("articles"):
-            old_articles = prev_current.get("articles", [])
-            changes = diff_articles(old_articles, new_articles)
-            if changes:
+        if prev_current is None:
+            print(f"[법령자료] '{statute['name']}' 신규 등록 (조문 {len(new_articles)}건, 별표 {len(new_annexes)}건)")
+        else:
+            article_changes = diff_articles(prev_current.get("articles", []), new_articles) if text_available else []
+            annex_changes = diff_articles(prev_current.get("annexes", []), new_annexes,
+                                           line_diff=True, sort_numeric=False)
+            if article_changes or annex_changes:
                 entry["history"].insert(0, {
                     "version_id": prev_current.get("version_id"),
                     "effective_date": prev_current.get("effective_date"),
                     "detected_at": now,
-                    "changes": changes,
+                    "article_changes": article_changes,
+                    "annex_changes": annex_changes,
                 })
                 entry["history"] = entry["history"][:MAX_HISTORY_PER_STATUTE]
-                print(f"[법령자료] '{statute['name']}' 개정 감지 — 조문 {len(changes)}건 변경")
-        elif prev_current is None:
-            print(f"[법령자료] '{statute['name']}' 신규 등록")
+                print(f"[법령자료] '{statute['name']}' 개정 감지 — 조문 {len(article_changes)}건, "
+                      f"별표 {len(annex_changes)}건 변경")
 
         entry["current"] = {
             "version_id": meta["version_id"],
@@ -196,6 +209,7 @@ def collect():
             "fetched_at": now,
             "detail_url": detail_url(statute),
             "articles": new_articles,
+            "annexes": new_annexes,
         }
         by_key[key] = entry
 

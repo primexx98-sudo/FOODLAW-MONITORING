@@ -34,18 +34,46 @@ def fmt_date(raw: str) -> str:
 
 
 def build_search_text(statute: dict) -> str:
-    cur = statute["current"]
-    parts = [statute["name"], statute["category"]]
-    for a in cur.get("articles", []):
-        parts.append(a.get("title", ""))
-    body = " ".join(a.get("text", "") for a in cur.get("articles", []))
-    parts.append(body[:800])
-    return esc(" ".join(parts).lower())
+    """data-search 속성엔 이름·카테고리만 담는다 — 조문·별표 전문은 이미 카드 안
+    `<details>`(접혀 있어도 DOM엔 존재)에 그대로 있어서 JS가 `textContent`로 바로
+    읽으면 되므로, 여기서 또 복제해 담을 필요가 없다. 처음엔 조문 800자·별표 전체를
+    이 속성에도 중복 저장했는데, 800자 캡 때문에 "건강기능식품"처럼 별표 후반부에
+    있는 검색어가 인덱스에서 잘려나가는 문제가 실측으로 발견됨 — 캡을 늘리는 대신
+    아예 중복 저장을 없애 캡 자체를 무의미하게 만듦(파일 크기 절감 효과도 있음)."""
+    return esc(f"{statute['name']} {statute['category']}".lower())
 
 
 def render_diff_line(line: dict) -> str:
     cls = "diff-added" if line["type"] == "added" else "diff-removed"
     return f'<div class="{cls}">{esc(line["text"])}</div>'
+
+
+def render_change_item(c: dict, kind: str) -> str:
+    if kind == "annex":
+        # 별표 식별자(별표키, 예: "000100")는 사람이 읽기엔 의미 없으니 제목만 보여줌
+        label = "별표"
+        title = f' · {esc(c["title"])}' if c.get("title") else ""
+    else:
+        label = f'제{esc(c["article_no"])}조' if c["article_no"] else "전문"
+        title = f'({esc(c["title"])})' if c.get("title") else ""
+    if c["change_type"] == "modified":
+        lines_html = "".join(render_diff_line(l) for l in c.get("diff_lines", []))
+        return f'''
+          <div class="change-item change-modified">
+            <div class="change-head">{label}{title} <span class="change-tag">개정</span></div>
+            <div class="change-diff">{lines_html}</div>
+          </div>'''
+    if c["change_type"] == "added":
+        return f'''
+          <div class="change-item change-added">
+            <div class="change-head">{label}{title} <span class="change-tag">신설</span></div>
+            <div class="change-diff"><div class="diff-added">{esc(c["new_text"])}</div></div>
+          </div>'''
+    return f'''
+      <div class="change-item change-removed">
+        <div class="change-head">{label}{title} <span class="change-tag">삭제</span></div>
+        <div class="change-diff"><div class="diff-removed">{esc(c["old_text"])}</div></div>
+      </div>'''
 
 
 def render_history(statute: dict) -> str:
@@ -54,31 +82,14 @@ def render_history(statute: dict) -> str:
         return ""
     entries = []
     for h in history:
-        changes_html = []
-        for c in h["changes"]:
-            if c["change_type"] == "modified":
-                lines_html = "".join(render_diff_line(l) for l in c.get("diff_lines", []))
-                changes_html.append(f'''
-                  <div class="change-item change-modified">
-                    <div class="change-head">제{esc(c["article_no"])}조{f"({esc(c['title'])})" if c["title"] else ""} <span class="change-tag">개정</span></div>
-                    <div class="change-diff">{lines_html}</div>
-                  </div>''')
-            elif c["change_type"] == "added":
-                changes_html.append(f'''
-                  <div class="change-item change-added">
-                    <div class="change-head">제{esc(c["article_no"])}조{f"({esc(c['title'])})" if c["title"] else ""} <span class="change-tag">신설</span></div>
-                    <div class="change-diff"><div class="diff-added">{esc(c["new_text"])}</div></div>
-                  </div>''')
-            else:
-                changes_html.append(f'''
-                  <div class="change-item change-removed">
-                    <div class="change-head">제{esc(c["article_no"])}조{f"({esc(c['title'])})" if c["title"] else ""} <span class="change-tag">삭제</span></div>
-                    <div class="change-diff"><div class="diff-removed">{esc(c["old_text"])}</div></div>
-                  </div>''')
+        article_changes = h.get("article_changes", [])
+        annex_changes = h.get("annex_changes", [])
+        changes_html = "".join(render_change_item(c, "article") for c in article_changes)
+        annex_html = "".join(render_change_item(c, "annex") for c in annex_changes)
         entries.append(f'''
           <details class="history-entry">
-            <summary>{fmt_date(h["effective_date"])} 시행본 → 개정 (조문 {len(h["changes"])}건 변경, 감지일 {h["detected_at"][:10]})</summary>
-            <div class="history-changes">{"".join(changes_html)}</div>
+            <summary>{fmt_date(h["effective_date"])} 시행본 → 개정 (조문 {len(article_changes)}건 · 별표 {len(annex_changes)}건 변경, 감지일 {h["detected_at"][:10]})</summary>
+            <div class="history-changes">{changes_html}{annex_html}</div>
           </details>''')
     return f'''
       <div class="statute-history">
@@ -108,6 +119,27 @@ def render_articles(statute: dict) -> str:
     return f'<div class="statute-articles">{"".join(items)}</div>'
 
 
+def render_annexes(statute: dict) -> str:
+    """별표(표 형식 첨부) — 조문 본문엔 없고 별표에만 있는 정보(예: 원산지 표시대상
+    품목)가 실제로 존재해서 조문과 별개로 노출한다. 박스 그리기 문자로 된 표라 고정폭
+    폰트(.mono)가 아니면 정렬이 깨짐."""
+    annexes = statute["current"].get("annexes", [])
+    if not annexes:
+        return ""
+    items = []
+    for a in annexes:
+        items.append(f'''
+          <details class="article-item">
+            <summary>{esc(a["title"]) or "별표"}</summary>
+            <pre class="annex-text mono">{esc(a["text"])}</pre>
+          </details>''')
+    return f'''
+      <div class="statute-annexes">
+        <div class="statute-annexes-label">별표·서식 ({len(annexes)}건)</div>
+        {"".join(items)}
+      </div>'''
+
+
 def render_statute(statute: dict) -> str:
     cur = statute["current"]
     target_label = TARGET_LABELS.get(statute["api_target"], statute["api_target"])
@@ -130,6 +162,7 @@ def render_statute(statute: dict) -> str:
         · <a href="{esc(cur["detail_url"])}" target="_blank" rel="noopener">원문 링크</a>
       </div>
       {render_articles(statute)}
+      {render_annexes(statute)}
       {render_history(statute)}
     </div>'''
 
@@ -256,6 +289,10 @@ def build():
       background:var(--surface-elevated);border-radius:8px;padding:10px 12px;}}
     .statute-no-text a{{color:var(--primary-text);text-decoration:none;}}
 
+    .statute-annexes{{margin-top:10px;border-top:1px solid var(--hairline);padding-top:6px;}}
+    .statute-annexes-label{{font-size:0.72rem;font-weight:700;color:var(--turquoise);text-transform:uppercase;letter-spacing:.04em;margin-bottom:2px;}}
+    .annex-text{{font-size:0.74rem;color:var(--muted-strong);line-height:1.5;padding:6px 2px 10px 14px;white-space:pre;overflow-x:auto;}}
+
     .statute-history{{margin-top:12px;border-top:1px solid var(--hairline);padding-top:8px;}}
     .statute-history-label{{font-size:0.72rem;font-weight:700;color:var(--down);text-transform:uppercase;letter-spacing:.04em;margin-bottom:4px;}}
     .history-entry summary{{padding:6px 2px;font-size:0.8rem;cursor:pointer;color:var(--muted-strong);}}
@@ -350,9 +387,16 @@ def build():
       return;
     }}
 
+    // 단어 단위 AND 매칭: "원산지 표시대상"처럼 띄어쓰기나 어순이 실제 조문 표현과
+    // 달라도(예: "원산지의 표시대상") 각 단어가 본문 어딘가에 있기만 하면 찾도록 함 —
+    // 이전엔 입력어 전체를 연속 문자열로 그대로 대조해서 이런 경우를 못 찾았음.
+    var searchTokens = searchQuery.split(/\s+/).filter(Boolean);
+    // 조문·별표 전문은 data-search에 없음 — 접혀있는 <details>도 DOM엔 그대로 있으므로
+    // textContent가 전체 본문을 캡 없이 그대로 돌려준다(자세한 이유는 build_search_text 참고).
     var items = Array.prototype.slice.call(document.querySelectorAll('#itemsMain .statute-item'));
     var matched = items.filter(function(it) {{
-      var textOk = !searchQuery || (it.dataset.search || '').includes(searchQuery);
+      var text = ((it.dataset.search || '') + ' ' + it.textContent).toLowerCase();
+      var textOk = searchTokens.every(function(tok) {{ return text.includes(tok); }});
       var catOk = activeCat === 'all' || it.dataset.category === activeCat;
       return textOk && catOk;
     }});
