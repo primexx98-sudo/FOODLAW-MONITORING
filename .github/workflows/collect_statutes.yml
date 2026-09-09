@@ -1,0 +1,42 @@
+name: 법령자료 수집
+
+on:
+  schedule:
+    - cron: '37 0 * * 1'  # 매주 월요일 09:37 KST — 기존 주간 법령 수집(collect.yml, 00:27)과
+                            # 겹치지 않게 10분 오프셋 (같은 저장소 동시 push 충돌 방지)
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  collect-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 저장소 체크아웃
+        uses: actions/checkout@v4
+
+      - name: Python 3.11 설정
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: 패키지 설치
+        run: pip install -r requirements.txt
+
+      - name: 법령자료 수집(원문+개정 diff)
+        env:
+          LAW_API_KEY: ${{ secrets.LAW_API_KEY }}
+        run: python scripts/collect_statutes.py
+
+      - name: 법령자료 사이트 빌드
+        run: python scripts/build_statute_site.py
+
+      - name: 변경사항 커밋 & 푸시
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add data/statute_library.json docs/statute
+          git diff --cached --quiet || git commit -m "chore: 법령자료 자동 수집 $(date +'%Y-%m-%d')"
+          git push
