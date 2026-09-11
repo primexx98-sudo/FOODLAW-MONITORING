@@ -21,6 +21,8 @@ from statute_diff_utils import (
     normalize_law_articles,
     normalize_admrul_articles,
     normalize_annexes,
+    normalize_revision_reason,
+    normalize_attachments,
     diff_articles,
 )
 
@@ -112,11 +114,20 @@ def fetch_detail(statute: dict, version_id: str) -> dict:
     if target == "law":
         law = data.get("법령", {})
         jomun = law.get("조문", {}).get("조문단위", [])
-        return {"articles": normalize_law_articles(jomun), "annexes": normalize_annexes(law.get("별표"))}
+        return {
+            "articles": normalize_law_articles(jomun), "annexes": normalize_annexes(law.get("별표")),
+            "revision_reason": "", "attachments": [],
+        }
     else:
         service = data.get("AdmRulService", {})
         jomun = service.get("조문내용", [])
-        return {"articles": normalize_admrul_articles(jomun), "annexes": normalize_annexes(service.get("별표"))}
+        return {
+            "articles": normalize_admrul_articles(jomun), "annexes": normalize_annexes(service.get("별표")),
+            # "공전"류(조문 본문 미제공)에서 diff 대신 보여줄 정보 — 조문이 있는 일반 고시엔
+            # 불필요하지만, 항상 채워둬도 해가 없고 어느 게 공전류로 새로 밝혀지든 바로 쓸 수 있음.
+            "revision_reason": normalize_revision_reason(service.get("제개정이유")),
+            "attachments": normalize_attachments(service.get("첨부파일")),
+        }
 
 
 def detail_url(statute: dict) -> str:
@@ -164,6 +175,15 @@ def collect():
         version_changed = prev_current is None or prev_current.get("version_id") != meta["version_id"]
 
         if not version_changed:
+            # 버전이 그대로라도 name/category는 매번 STATUTES(설정)에서 동기화 — 이전엔
+            # 신규 등록 시점에만 채워져서, 이미 추적 중인 항목의 category를 설정에서
+            # 바꿔도(예: 공전류를 "기준규격"으로 재분류) 실제 버전 개정이 일어나기 전까지
+            # 데이터에 반영 안 되는 문제가 있었음(실측: hff_standard_spec/food_additive_standard
+            # 재분류가 다음 개정 때까지 조용히 무시될 뻔함).
+            if prev is not None and (prev.get("category") != statute["category"] or prev.get("name") != statute["name"]):
+                prev["category"] = statute["category"]
+                prev["name"] = statute["name"]
+                print(f"[법령자료] '{statute['name']}' 메타데이터만 동기화(category/name)")
             print(f"[법령자료] '{statute['name']}' 변경 없음 (버전 {meta['version_id']})")
             continue
 
@@ -175,11 +195,15 @@ def collect():
 
         new_articles = detail["articles"]
         new_annexes = detail["annexes"]
+        new_revision_reason = detail.get("revision_reason", "")
+        new_attachments = detail.get("attachments", [])
         text_available = bool(new_articles)
         entry = by_key.get(key) or {
             "key": key, "name": statute["name"], "category": statute["category"],
             "api_target": statute["api_target"], "history": [],
         }
+        entry["name"] = statute["name"]
+        entry["category"] = statute["category"]
         entry["text_available"] = text_available
 
         if prev_current is None:
@@ -188,17 +212,25 @@ def collect():
             article_changes = diff_articles(prev_current.get("articles", []), new_articles) if text_available else []
             annex_changes = diff_articles(prev_current.get("annexes", []), new_annexes,
                                            line_diff=True, sort_numeric=False)
-            if article_changes or annex_changes:
+            # "공전"류는 조문·별표 모두 API가 본문을 안 줘 diff가 항상 빈 리스트로 나온다 —
+            # 그렇다고 버전이 바뀐 사실 자체를 기록 안 하면 개정이 조용히 사라지므로,
+            # 조문 diff는 없어도 제개정이유가 있으면 그걸로 대체해 이력에 남긴다.
+            reason_only = not (article_changes or annex_changes) and bool(new_revision_reason)
+            if article_changes or annex_changes or reason_only:
                 entry["history"].insert(0, {
                     "version_id": prev_current.get("version_id"),
                     "effective_date": prev_current.get("effective_date"),
                     "detected_at": now,
                     "article_changes": article_changes,
                     "annex_changes": annex_changes,
+                    "revision_reason": new_revision_reason if reason_only else "",
                 })
                 entry["history"] = entry["history"][:MAX_HISTORY_PER_STATUTE]
-                print(f"[법령자료] '{statute['name']}' 개정 감지 — 조문 {len(article_changes)}건, "
-                      f"별표 {len(annex_changes)}건 변경")
+                if reason_only:
+                    print(f"[법령자료] '{statute['name']}' 개정 감지 — 조문 diff 미제공, 제개정이유로 대체 기록")
+                else:
+                    print(f"[법령자료] '{statute['name']}' 개정 감지 — 조문 {len(article_changes)}건, "
+                          f"별표 {len(annex_changes)}건 변경")
 
         entry["current"] = {
             "version_id": meta["version_id"],
@@ -206,6 +238,8 @@ def collect():
             "promulgation_no": meta["promulgation_no"],
             "promulgation_date": meta["promulgation_date"],
             "effective_date": meta["effective_date"],
+            "revision_reason": new_revision_reason,
+            "attachments": new_attachments,
             "fetched_at": now,
             "detail_url": detail_url(statute),
             "articles": new_articles,

@@ -35,8 +35,6 @@ STATUTES = [
      "category": "건기식", "api_target": "admrul", "query": "건강기능식품 기능성 원료 및 기준ㆍ규격 인정에 관한 규정"},
     {"key": "food_label_standard", "name": "식품등의 표시기준",
      "category": "표시광고", "api_target": "admrul", "query": "식품등의 표시기준"},
-    {"key": "food_additive_standard", "name": "식품첨가물의 기준 및 규격",
-     "category": "식품첨가물", "api_target": "admrul", "query": "식품첨가물의 기준 및 규격"},
     {"key": "unfair_ad_functional", "name": "부당한 표시 또는 광고로 보지 아니하는 식품등의 기능성 표시 또는 광고에 관한 규정",
      "category": "표시광고", "api_target": "admrul", "query": "부당한 표시 또는 광고로 보지 아니하는 식품등의 기능성 표시 또는 광고에 관한 규정"},
     {"key": "unfair_ad_content", "name": "식품등의 부당한 표시 또는 광고의 내용 기준",
@@ -54,12 +52,20 @@ STATUTES = [
     {"key": "origin_label_manner", "name": "농수산물의 원산지표시 요령",
      "category": "원산지", "api_target": "admrul", "query": "농수산물의 원산지표시 요령"},
 
-    # --- 행정규칙/고시 (target=admrul) ---
-    # "건강기능식품의 기준 및 규격"(공전)은 API가 본문 대신 안내문만 반환 — 원문 링크만 노출됨.
-    # 본문 제공 여부는 하드코딩하지 않고 collect_statutes.py가 매 수집 시 실제 응답을 보고
-    # 판단한다(같은 유형인 "식품첨가물의 기준 및 규격"도 실측 결과 본문 미제공으로 확인됨).
+    # --- 행정규칙/고시 (target=admrul, "공전"류 — 조문 원문 대신 안내문만 반환) ---
+    # 세 공전(건강기능식품/식품/식품첨가물의 기준 및 규격) 모두 API가 조문 본문을 안 줌 —
+    # 실측 결과 셋 다 동일 패턴(조문내용은 "상단 메뉴 버튼을 이용" 안내문 또는 빈 문자열)이라
+    # text_available은 하드코딩하지 않고 collect_statutes.py가 매 수집 시 실제 응답으로 판단.
+    # 대신 API가 개정 때마다 제개정이유(변경 내용 설명 텍스트)와 첨부파일(고시 전문
+    # ZIP/HWPX/PDF 다운로드 링크)은 제공해서(fetch_detail의 revision_reason/attachments),
+    # 조문 단위 diff는 못 해도 "무엇이 왜 바뀌었는지"는 보여줄 수 있음 — 세 항목을 별도
+    # 카테고리로 묶어 이 한계·대안이 한 곳에서 일관되게 보이도록 함.
     {"key": "hff_standard_spec", "name": "건강기능식품의 기준 및 규격",
-     "category": "건기식", "api_target": "admrul", "query": "건강기능식품의 기준 및 규격"},
+     "category": "기준규격", "api_target": "admrul", "query": "건강기능식품의 기준 및 규격"},
+    {"key": "food_standard_spec", "name": "식품의 기준 및 규격",
+     "category": "기준규격", "api_target": "admrul", "query": "식품의 기준 및 규격"},
+    {"key": "food_additive_standard", "name": "식품첨가물의 기준 및 규격",
+     "category": "기준규격", "api_target": "admrul", "query": "식품첨가물의 기준 및 규격"},
 ]
 
 STATUTES_BY_KEY = {s["key"]: s for s in STATUTES}

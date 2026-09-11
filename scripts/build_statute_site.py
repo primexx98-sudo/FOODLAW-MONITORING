@@ -17,10 +17,10 @@ OUT_PATH = os.path.join(os.path.dirname(__file__), "..", "docs", "statute", "ind
 
 TARGET_LABELS = {"law": "법령", "admrul": "고시"}
 
-CATEGORY_ORDER = ["표시광고", "건기식", "포장재", "원산지", "식품첨가물", "이력추적"]
+CATEGORY_ORDER = ["표시광고", "건기식", "포장재", "원산지", "기준규격", "이력추적"]
 CATEGORY_COLORS = {
     "표시광고": "#5046e5", "건기식": "#0a9f68", "포장재": "#2563eb",
-    "원산지": "#d97706", "식품첨가물": "#0f8f88", "이력추적": "#d63447",
+    "원산지": "#d97706", "기준규격": "#9333ea", "이력추적": "#d63447",
 }
 
 
@@ -104,11 +104,24 @@ def render_history(statute: dict) -> str:
     for i, h in enumerate(history):
         article_changes = h.get("article_changes", [])
         annex_changes = h.get("annex_changes", [])
-        changes_html = "".join(render_change_item(c, "article") for c in article_changes)
-        annex_html = "".join(render_change_item(c, "annex") for c in annex_changes)
+        reason = h.get("revision_reason", "")
+        if reason and not article_changes and not annex_changes:
+            # "공전"류 — 조문 diff는 없지만 그 개정에서 실제로 뭐가 바뀌었는지는
+            # 제개정이유 원문으로 보여준다(render_change_item과 다른 전용 블록).
+            changes_html = f'''
+              <div class="change-item change-modified">
+                <div class="change-head">제·개정 이유 <span class="change-tag">공전 개정</span></div>
+                <div class="change-diff"><div class="reason-text">{esc(reason)}</div></div>
+              </div>'''
+            annex_html = ""
+            summary = "본문 diff 미제공 · 제개정이유로 확인"
+        else:
+            changes_html = "".join(render_change_item(c, "article") for c in article_changes)
+            annex_html = "".join(render_change_item(c, "annex") for c in annex_changes)
+            summary = f"조문 {len(article_changes)}건 · 별표 {len(annex_changes)}건 변경"
         entries.append(f'''
           <details class="history-entry" id="history-{esc(statute["key"])}-{i}">
-            <summary>{fmt_date(h["effective_date"])} 시행본 → 개정 (조문 {len(article_changes)}건 · 별표 {len(annex_changes)}건 변경, 감지일 {h["detected_at"][:10]})</summary>
+            <summary>{fmt_date(h["effective_date"])} 시행본 → 개정 ({summary}, 감지일 {h["detected_at"][:10]})</summary>
             <div class="history-changes">{changes_html}{annex_html}</div>
           </details>''')
     return f'''
@@ -129,11 +142,13 @@ def render_timeline(statutes: list) -> str:
         cat_color = CATEGORY_COLORS.get(cat, "#8695ab")
         target_label = TARGET_LABELS.get(s["api_target"], s["api_target"])
         for i, h in enumerate(s.get("history", [])):
+            article_count = len(h.get("article_changes", []))
+            annex_count = len(h.get("annex_changes", []))
+            reason_only = bool(h.get("revision_reason")) and not article_count and not annex_count
             entries.append({
                 "detected_at": h["detected_at"],
                 "effective_date": h.get("effective_date"),
-                "article_count": len(h.get("article_changes", [])),
-                "annex_count": len(h.get("annex_changes", [])),
+                "article_count": article_count, "annex_count": annex_count, "reason_only": reason_only,
                 "target_id": f'history-{s["key"]}-{i}',
                 "name": s["name"], "target_label": target_label, "cat_color": cat_color,
             })
@@ -162,7 +177,10 @@ def render_timeline(statutes: list) -> str:
             <span class="statute-cat-dot" style="background:{it["cat_color"]}"></span>
             <span class="statute-target-badge">{esc(it["target_label"])}</span>
             <span class="timeline-statute-name">{esc(it["name"])}</span>
-            <span class="timeline-summary">조문 {it["article_count"]}건 · 별표 {it["annex_count"]}건 변경 · 시행일 {fmt_date(it["effective_date"])}</span>
+            <span class="timeline-summary">{
+              "본문 diff 미제공 · 제개정이유로 확인" if it["reason_only"]
+              else f'조문 {it["article_count"]}건 · 별표 {it["annex_count"]}건 변경'
+            } · 시행일 {fmt_date(it["effective_date"])}</span>
           </button>''' for it in items)
         group_html.append(f'''
       <div class="timeline-date-group">
@@ -172,13 +190,31 @@ def render_timeline(statutes: list) -> str:
     return f'<div class="timeline">{"".join(group_html)}</div>'
 
 
+def render_attachments(attachments: list) -> str:
+    if not attachments:
+        return ""
+    links = " · ".join(
+        f'<a href="{esc(a["url"])}" target="_blank" rel="noopener">{esc(a["name"]) or "첨부파일"}</a>'
+        for a in attachments if a.get("url")
+    )
+    return f'<div class="statute-attachments">전체 원문 파일: {links}</div>' if links else ""
+
+
 def render_articles(statute: dict) -> str:
     cur = statute["current"]
     if not statute["text_available"]:
+        reason = cur.get("revision_reason", "")
+        reason_html = (
+            f'<div class="statute-reason"><div class="statute-reason-label">최근 제·개정 이유</div>'
+            f'<div class="statute-reason-text">{esc(reason)}</div></div>'
+        ) if reason else ""
         return f'''
           <div class="statute-no-text">
-            이 항목은 국가법령정보 Open API가 본문 텍스트를 제공하지 않습니다(방대한 별표·서식 위주 고시).
+            이 항목은 방대한 "공전"류 고시라 국가법령정보 Open API가 조문 단위 본문을 제공하지
+            않습니다 — 대신 아래 제·개정 이유와 전체 원문 파일로 최신 개정 내용을 확인하세요.
             <a href="{esc(cur["detail_url"])}" target="_blank" rel="noopener">국가법령정보센터에서 원문 보기 →</a>
+            {reason_html}
+            {render_attachments(cur.get("attachments", []))}
           </div>'''
     articles = cur.get("articles", [])
     items = []
@@ -404,6 +440,14 @@ def build():
     .statute-no-text{{margin-top:10px;font-size:0.82rem;color:var(--muted-strong);
       background:var(--surface-elevated);border-radius:8px;padding:10px 12px;}}
     .statute-no-text a{{color:var(--primary-text);text-decoration:none;}}
+    .statute-reason{{margin-top:10px;padding-top:8px;border-top:1px solid var(--hairline);}}
+    .statute-reason-label{{font-size:0.72rem;font-weight:700;color:var(--primary-text);
+      text-transform:uppercase;letter-spacing:.04em;margin-bottom:4px;}}
+    .statute-reason-text{{font-size:0.8rem;color:var(--muted-strong);line-height:1.7;white-space:pre-wrap;}}
+    .statute-attachments{{margin-top:8px;font-size:0.78rem;color:var(--muted);}}
+    .statute-attachments a{{color:var(--primary-text);text-decoration:none;}}
+    .statute-attachments a:hover{{text-decoration:underline;}}
+    .reason-text{{white-space:pre-wrap;color:var(--body-text);line-height:1.7;}}
 
     .statute-annexes{{margin-top:10px;border-top:1px solid var(--hairline);padding-top:6px;}}
     .statute-annexes-label{{font-size:0.72rem;font-weight:700;color:var(--turquoise);text-transform:uppercase;letter-spacing:.04em;margin-bottom:2px;}}

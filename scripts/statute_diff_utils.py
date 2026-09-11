@@ -150,6 +150,38 @@ def unified_line_diff(old_text: str, new_text: str) -> list:
     return result
 
 
+def normalize_revision_reason(raw) -> str:
+    """행정규칙 API의 제개정이유.제개정이유내용을 사람이 읽는 문단 텍스트로 변환.
+
+    "공전"류(조문 본문을 안 주는 방대한 고시)에서 조문 단위 diff 대신 보여줄 유일한
+    실질 정보 — 실측 구조는 [[줄1, 줄2, ...]](문단 그룹의 리스트)라 완전히 펼쳐 합친다."""
+    if not isinstance(raw, dict):
+        return ""
+    content = raw.get("제개정이유내용", [])
+    lines = []
+    for group in content:
+        if isinstance(group, list):
+            lines.extend(group)
+        else:
+            lines.append(group)
+    return "\n".join(str(l) for l in lines if l).strip()
+
+
+def normalize_attachments(raw) -> list:
+    """행정규칙 API의 첨부파일(고시 전문 ZIP/HWPX/PDF) 링크·명을 {url, name} 리스트로
+    정규화 — 링크·명 둘 다 단일 값 또는 배열로 올 수 있다(실측: 식품첨가물의 기준 및
+    규격은 HWPX+PDF 2건 배열)."""
+    if not isinstance(raw, dict):
+        return []
+    urls = raw.get("첨부파일링크", [])
+    names = raw.get("첨부파일명", [])
+    if not isinstance(urls, list):
+        urls = [urls] if urls else []
+    if not isinstance(names, list):
+        names = [names] if names else []
+    return [{"url": u, "name": (names[i] if i < len(names) else "")} for i, u in enumerate(urls) if u]
+
+
 def normalize_annexes(byl_field) -> list:
     """target=law/admrul 공통 — lawService.do 응답의 '별표' 필드(별표.별표단위)를 정규화.
 
