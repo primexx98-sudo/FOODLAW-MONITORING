@@ -72,3 +72,9 @@ STATUTES_BY_KEY = {s["key"]: s for s in STATUTES}
 
 # 조문 개수가 많은 이력을 무한정 쌓지 않도록 법령/고시당 보관할 최대 변경 이력 수
 MAX_HISTORY_PER_STATUTE = 20
+
+# "기준규격" 3종 중 첨부파일에서 검색용 전문 텍스트를 뽑을 대상 — HWPX만 지원하므로
+# (hwpx_extract.py 참고) 첨부가 순수 HWPX/HWPX-zip인 2종만 포함. "식품의 기준 및 규격"은
+# 첨부 ZIP 안에 구형 .hwp(파서 없음)가 섞여 있어 전문 추출 시도 대상에서 제외 —
+# 원문 링크(및 제개정이유)만 계속 제공.
+CODEX_FULLTEXT_KEYS = {"hff_standard_spec", "food_additive_standard"}

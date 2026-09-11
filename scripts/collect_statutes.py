@@ -16,7 +16,7 @@ from datetime import datetime, timezone
 import requests
 
 sys.path.insert(0, os.path.dirname(__file__))
-from statute_config import STATUTES, MAX_HISTORY_PER_STATUTE
+from statute_config import STATUTES, MAX_HISTORY_PER_STATUTE, CODEX_FULLTEXT_KEYS
 from statute_diff_utils import (
     normalize_law_articles,
     normalize_admrul_articles,
@@ -25,6 +25,7 @@ from statute_diff_utils import (
     normalize_attachments,
     diff_articles,
 )
+from hwpx_extract import extract_codex_fulltext, pick_hwpx_attachment
 
 API_KEY = os.environ.get("LAW_API_KEY", "")
 SEARCH_URL = "https://www.law.go.kr/DRF/lawSearch.do"
@@ -130,6 +131,23 @@ def fetch_detail(statute: dict, version_id: str) -> dict:
         }
 
 
+def fetch_codex_fulltext(attachments: list) -> str:
+    """CODEX_FULLTEXT_KEYS 대상(공전 중 HWPX 첨부를 가진 2종)의 첨부파일을 내려받아
+    검색용 전문 텍스트를 뽑는다. 실패해도(다운로드 오류·예상 밖 파일 구조 등) 전체
+    수집을 중단시키지 않고 빈 문자열로 대체 — 이 텍스트는 AI 의미검색 인덱싱용
+    부가 정보일 뿐, 없어도 사이트의 다른 기능엔 영향 없음."""
+    attachment = pick_hwpx_attachment(attachments)
+    if attachment is None:
+        return ""
+    try:
+        r = requests.get(attachment["url"], timeout=60)
+        r.raise_for_status()
+        return extract_codex_fulltext(r.content)
+    except Exception as e:
+        print(f"[법령자료] 공전 전문 추출 실패({attachment.get('name', '')}): {e}")
+        return ""
+
+
 def detail_url(statute: dict) -> str:
     prefix = "법령" if statute["api_target"] == "law" else "행정규칙"
     return f"https://www.law.go.kr/{prefix}/{statute['name']}"
@@ -232,6 +250,12 @@ def collect():
                     print(f"[법령자료] '{statute['name']}' 개정 감지 — 조문 {len(article_changes)}건, "
                           f"별표 {len(annex_changes)}건 변경")
 
+        new_full_text = ""
+        if key in CODEX_FULLTEXT_KEYS:
+            new_full_text = fetch_codex_fulltext(new_attachments)
+            print(f"[법령자료] '{statute['name']}' 전문 텍스트 추출 {len(new_full_text)}자"
+                  f"{'(검색용, 조문 diff 아님)' if new_full_text else ' — 실패, 링크만 유지'}")
+
         entry["current"] = {
             "version_id": meta["version_id"],
             "detail_id": meta["detail_id"],
@@ -240,6 +264,7 @@ def collect():
             "effective_date": meta["effective_date"],
             "revision_reason": new_revision_reason,
             "attachments": new_attachments,
+            "full_text": new_full_text,
             "fetched_at": now,
             "detail_url": detail_url(statute),
             "articles": new_articles,

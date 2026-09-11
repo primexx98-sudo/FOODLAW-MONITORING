@@ -82,6 +82,16 @@ def build_chunk_list(library: dict) -> list:
                 continue
             for part, piece in enumerate(chunk_text(a["text"])):
                 chunks.append({"key": statute["key"], "kind": "annex", "no": a["no"], "part": part, "text": piece})
+        # "공전"류(조문 본문 미제공) 중 HWPX 첨부에서 뽑은 전문 텍스트(hwpx_extract.py) —
+        # kind="fulltext"엔 DOM에 대응하는 <details>가 없어(카드에 원문을 통째로 넣으면
+        # 페이지가 수 MB 불어남, [[project_food_law_monitor]] 09-11 참고) jumpToChunk()가
+        # 열어젖힐 세부 항목은 없지만, 카드 자체로 스크롤은 정상 동작(기존 로직이 detail이
+        # 없으면 그 부분만 건너뛰도록 이미 방어돼 있음) — AI 의미검색으로 "이 공전에 관련
+        # 내용이 있다"는 것만 찾아주는 용도.
+        full_text = cur.get("full_text", "")
+        if full_text:
+            for part, piece in enumerate(chunk_text(full_text)):
+                chunks.append({"key": statute["key"], "kind": "fulltext", "no": "", "part": part, "text": piece})
     return chunks
 
 
