@@ -87,7 +87,10 @@
       border:1px solid var(--hairline);border-radius:8px;padding:8px 10px;margin-bottom:6px;
       cursor:pointer;font-family:inherit;color:var(--body-text);font-size:0.82rem;}
     .ai-result-item:hover{border-color:var(--primary);}
+    .ai-result-item.ai-result-static{cursor:default;}
+    .ai-result-item.ai-result-static:hover{border-color:var(--hairline);}
     .ai-result-score{color:var(--muted);font-size:0.72rem;font-family:'JetBrains Mono',monospace;margin-left:6px;}
+    .ai-result-source{color:var(--turquoise);font-size:0.7rem;font-weight:700;margin-top:3px;}
     @keyframes pulseHighlight{0%,100%{background:transparent;}50%{background:rgba(80,70,229,.18);}}
     .deep-link-highlight{animation:pulseHighlight 1s ease-in-out 2;}
     /* 검색 결과에서 실제로 검색어와 일치한 조문/별표를 자동으로 펼치고 표시 —
@@ -12285,6 +12288,7 @@ III. 이 판정방법에서 사용하는 용어의 정의는 다음과 같다.
   var aiLoading = false;
   var aiPipeline = null;
   var aiChunks = null; // [{key, kind, no, vec: Float32Array}]
+  var practiceNames = {}; // kind="practice" 청크는 대응하는 DOM 카드가 없어 이 표로 이름 조회
   var aiDebounceTimer = null;
 
   function toggleAiMode() {
@@ -12318,8 +12322,11 @@ III. 이 판정방법에서 사용하는 용어의 정의는 다음과 같다.
         for (var i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
         return { key: c.key, kind: c.kind, no: c.no, vec: new Float32Array(bytes.buffer) };
       });
+      practiceNames = data.practice_names || {};
 
-      status.textContent = 'AI 의미검색 준비 완료 (' + aiChunks.length + '개 조문·별표 인덱싱됨)';
+      var practiceCount = Object.keys(practiceNames).length;
+      status.textContent = 'AI 의미검색 준비 완료 (' + aiChunks.length + '개 조문·별표' +
+        (practiceCount ? ' + 실무자료 ' + practiceCount + '건' : '') + ' 인덱싱됨)';
       setTimeout(function() { status.hidden = true; }, 2500);
       aiLoading = false;
       if (searchQuery) runAiSearch();
@@ -12363,14 +12370,27 @@ III. 이 판정방법에서 사용하는 용어의 정의는 다음과 같다.
 
     // onclick 문자열 조합 대신 data-* 속성 + addEventListener 사용 — HTML 속성값 안에
     // JS 문자열 리터럴을 따옴표로 또 감싸는 이스케이핑을 피해 실수 여지를 없앤다.
+    // kind="practice"(실무자료)는 대응하는 <div class="statute-item"> 카드가 없어
+    // (2026-09-11 사용자 로컬 파일에서 색인, 공개 사이트엔 원문을 안 싣기로 함)
+    // DOM에서 이름을 못 찾으므로 practiceNames로 조회하고, 클릭해도 이동할 곳이
+    // 없으니 버튼이 아닌 정적 항목(.ai-result-static)으로 렌더링 — 출처만 표시.
     results.innerHTML = '<div class="ai-results-label">🧠 의미 기반 추천</div>' + ranked.map(function(r) {
-      var nameEl = document.querySelector('#statute-' + CSS.escape(r.key) + ' .statute-name');
-      var name = nameEl ? nameEl.textContent : r.key;
-      return '<button class="ai-result-item" data-key="' + r.key + '" data-kind="' + r.kind + '" data-no="' + r.no + '">' +
-        name + '<span class="ai-result-score">유사도 ' + r.sim.toFixed(2) + '</span></button>';
+      var isPractice = r.kind === 'practice';
+      var name;
+      if (isPractice) {
+        name = practiceNames[r.key] || r.key;
+      } else {
+        var nameEl = document.querySelector('#statute-' + CSS.escape(r.key) + ' .statute-name');
+        name = nameEl ? nameEl.textContent : r.key;
+      }
+      var sourceLine = isPractice ? '<div class="ai-result-source">출처: 실무자료</div>' : '';
+      var tag = isPractice ? 'div' : 'button';
+      var cls = isPractice ? 'ai-result-item ai-result-static' : 'ai-result-item';
+      return '<' + tag + ' class="' + cls + '" data-key="' + r.key + '" data-kind="' + r.kind + '" data-no="' + r.no + '">' +
+        name + '<span class="ai-result-score">유사도 ' + r.sim.toFixed(2) + '</span>' + sourceLine + '</' + tag + '>';
     }).join('');
     results.hidden = false;
-    results.querySelectorAll('.ai-result-item').forEach(function(btn) {
+    results.querySelectorAll('.ai-result-item:not(.ai-result-static)').forEach(function(btn) {
       btn.addEventListener('click', function() {
         jumpToChunk(btn.dataset.key, btn.dataset.kind, btn.dataset.no);
       });

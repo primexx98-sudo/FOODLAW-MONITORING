@@ -30,6 +30,7 @@ DIM = 384
 MAX_CHUNK_CHARS = 800  # 대략 512토큰 한도 안쪽으로 넉넉히 잡은 문자수 캡(한국어 기준 보수적으로)
 
 DATA_PATH = os.path.join(os.path.dirname(__file__), "..", "data", "statute_library.json")
+PRACTICE_DATA_PATH = os.path.join(os.path.dirname(__file__), "..", "data", "practice_docs.json")
 OUT_PATH = os.path.join(os.path.dirname(__file__), "..", "docs", "statute", "embeddings.json")
 CACHE_DIR = os.path.join(os.path.dirname(__file__), "..", "_embed_model_cache")
 
@@ -95,6 +96,19 @@ def build_chunk_list(library: dict) -> list:
     return chunks
 
 
+def build_practice_chunk_list(practice_docs: list) -> tuple:
+    """실무자료(extract_practice_docs.py 산출물) 텍스트를 청크로 쪼갠다. kind="practice"로
+    구분되며, 법령 카드처럼 대응하는 DOM 요소가 없어 브라우저가 이름을 알 방법이
+    없으므로(2026-09-11) id→표시명 매핑도 함께 반환 — embeddings.json에 같이 실어
+    브라우저 쪽에서 검색 결과 렌더링에 쓴다."""
+    chunks, names = [], {}
+    for doc in practice_docs:
+        names[doc["id"]] = doc["name"]
+        for part, piece in enumerate(chunk_text(doc["text"])):
+            chunks.append({"key": doc["id"], "kind": "practice", "no": "", "part": part, "text": piece})
+    return chunks, names
+
+
 def embed_batch(sess, tokenizer, texts: list) -> np.ndarray:
     encs = tokenizer.encode_batch(texts)
     max_len = max(len(e.ids) for e in encs)
@@ -125,6 +139,15 @@ def embed():
         library = json.load(f)
 
     chunk_meta = build_chunk_list(library)
+
+    practice_names = {}
+    if os.path.exists(PRACTICE_DATA_PATH):
+        with open(PRACTICE_DATA_PATH, encoding="utf-8") as f:
+            practice_docs = json.load(f).get("docs", [])
+        practice_chunks, practice_names = build_practice_chunk_list(practice_docs)
+        chunk_meta.extend(practice_chunks)
+        print(f"[임베딩] 실무자료 {len(practice_docs)}건 → {len(practice_chunks)}개 청크 추가")
+
     if not chunk_meta:
         print("[임베딩] 임베딩할 청크가 없습니다.")
         return
@@ -146,7 +169,7 @@ def embed():
 
     os.makedirs(os.path.dirname(OUT_PATH), exist_ok=True)
     with open(OUT_PATH, "w", encoding="utf-8") as f:
-        json.dump({"model": MODEL_REPO, "dim": DIM, "chunks": out_chunks}, f)
+        json.dump({"model": MODEL_REPO, "dim": DIM, "chunks": out_chunks, "practice_names": practice_names}, f)
 
     print(f"\n임베딩 완료: {len(out_chunks)}개 청크 → {OUT_PATH}")
 
