@@ -96,7 +96,23 @@
     .article-item.search-hit summary{font-weight:700;color:var(--primary-text);}
 
     .main{max-width:820px;margin:16px auto;padding:0 24px 60px;}
-    #normalView[hidden], #searchResults[hidden]{display:none;}
+    #normalView[hidden], #searchResults[hidden], #timelineView[hidden]{display:none;}
+
+    .timeline-date-group{margin-bottom:20px;}
+    .timeline-date{font-family:'JetBrains Mono',monospace;font-size:0.76rem;font-weight:700;
+      color:var(--muted);padding-bottom:6px;margin-bottom:8px;border-bottom:1px solid var(--hairline);}
+    .timeline-date-items{display:flex;flex-direction:column;gap:6px;}
+    .timeline-entry{display:flex;align-items:center;gap:8px;flex-wrap:wrap;width:100%;text-align:left;
+      background:var(--surface);border:1px solid var(--hairline);border-radius:8px;padding:9px 12px;
+      cursor:pointer;font-family:inherit;color:var(--body-text);}
+    .timeline-entry:hover{border-color:var(--primary);}
+    .timeline-statute-name{font-size:0.85rem;font-weight:700;}
+    .timeline-summary{font-size:0.76rem;color:var(--muted-strong);margin-left:auto;}
+    .timeline-empty{padding:40px 20px;text-align:center;color:var(--muted);font-size:0.85rem;
+      background:var(--surface);border-radius:12px;line-height:1.7;}
+    @media(max-width:760px){
+      .timeline-summary{margin-left:0;width:100%;}
+    }
 
     .statute-item{background:var(--surface);border-radius:12px;padding:16px 18px;margin-bottom:14px;}
     .statute-header{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
@@ -167,6 +183,7 @@
         <input class="search-input" type="text" placeholder="법령명·조문 내용 검색" oninput="setSearch(this.value)">
       </div>
       <button class="btn-tool" id="aiToggleBtn" onclick="toggleAiMode()">🧠 AI 의미검색</button>
+      <button class="btn-tool" id="timelineToggleBtn" onclick="toggleTimelineView()">🕒 변경이력 타임라인</button>
     </div>
     <div class="ai-status" id="aiStatus" hidden></div>
     <div class="ai-results" id="aiResults" hidden></div>
@@ -12019,6 +12036,11 @@ III. 이 판정방법에서 사용하는 용어의 정의는 다음과 같다.
       </main>
     </div>
     <div class="main" id="searchResults" hidden></div>
+    <div class="main" id="timelineView" hidden>
+      <div class="timeline-empty">
+        아직 감지된 개정 이력이 없습니다. 매주 월요일 자동 수집 시 조문·별표 변경이
+        감지되면 이곳에 최신순으로 쌓입니다.
+      </div></div>
   </div>
 </div>
 <script>
@@ -12238,6 +12260,43 @@ III. 이 판정방법에서 사용하는 용어의 정의는 다음과 같다.
         jumpToChunk(btn.dataset.key, btn.dataset.kind, btn.dataset.no);
       });
     });
+  }
+
+  // ── 변경 이력 타임라인 ──
+  // 개별 법령 카드 안 접힌 개정 이력(history-entry)을 그대로 재사용한다 — 타임라인은
+  // 요약만 보여주고, 클릭하면 정상 목록으로 돌아가 해당 카드의 이력을 펼쳐 스크롤한다.
+  var timelineEnabled = false;
+
+  function toggleTimelineView() {
+    timelineEnabled = !timelineEnabled;
+    document.getElementById('timelineToggleBtn').classList.toggle('active', timelineEnabled);
+    document.getElementById('timelineView').hidden = !timelineEnabled;
+    if (timelineEnabled) {
+      document.getElementById('normalView').hidden = true;
+      document.getElementById('searchResults').hidden = true;
+      document.getElementById('searchStatus').hidden = true;
+    } else {
+      applyFilter();
+    }
+  }
+
+  document.getElementById('timelineView').addEventListener('click', function(e) {
+    var btn = e.target.closest('.timeline-entry');
+    if (!btn) return;
+    jumpToHistory(btn.dataset.target);
+  });
+
+  function jumpToHistory(id) {
+    timelineEnabled = false;
+    document.getElementById('timelineToggleBtn').classList.remove('active');
+    document.getElementById('timelineView').hidden = true;
+    clearAllFilters();
+    var detail = document.getElementById(id);
+    if (!detail) return;
+    detail.open = true;
+    detail.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    detail.classList.add('deep-link-highlight');
+    setTimeout(function() { detail.classList.remove('deep-link-highlight'); }, 2000);
   }
 
   function jumpToChunk(key, kind, no) {

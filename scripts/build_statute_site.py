@@ -101,13 +101,13 @@ def render_history(statute: dict) -> str:
     if not history:
         return ""
     entries = []
-    for h in history:
+    for i, h in enumerate(history):
         article_changes = h.get("article_changes", [])
         annex_changes = h.get("annex_changes", [])
         changes_html = "".join(render_change_item(c, "article") for c in article_changes)
         annex_html = "".join(render_change_item(c, "annex") for c in annex_changes)
         entries.append(f'''
-          <details class="history-entry">
+          <details class="history-entry" id="history-{esc(statute["key"])}-{i}">
             <summary>{fmt_date(h["effective_date"])} 시행본 → 개정 (조문 {len(article_changes)}건 · 별표 {len(annex_changes)}건 변경, 감지일 {h["detected_at"][:10]})</summary>
             <div class="history-changes">{changes_html}{annex_html}</div>
           </details>''')
@@ -116,6 +116,60 @@ def render_history(statute: dict) -> str:
         <div class="statute-history-label">개정 이력 ({len(history)}건)</div>
         {"".join(entries)}
       </div>'''
+
+
+def render_timeline(statutes: list) -> str:
+    """전체 법령의 개정 이력(history)을 detected_at 기준으로 합쳐 날짜별 타임라인으로
+    보여준다. 각 법령 카드 안에 이미 있는 history-entry의 diff를 여기서 다시 렌더링하면
+    이력이 매주 누적될수록 페이지 용량이 두 배로 불어나므로, 타임라인 항목은 요약 한 줄만
+    갖고 클릭 시 jumpToHistory()로 원본 카드의 접힌 이력을 펼쳐 스크롤만 시킨다."""
+    entries = []
+    for s in statutes:
+        cat = s["category"]
+        cat_color = CATEGORY_COLORS.get(cat, "#8695ab")
+        target_label = TARGET_LABELS.get(s["api_target"], s["api_target"])
+        for i, h in enumerate(s.get("history", [])):
+            entries.append({
+                "detected_at": h["detected_at"],
+                "effective_date": h.get("effective_date"),
+                "article_count": len(h.get("article_changes", [])),
+                "annex_count": len(h.get("annex_changes", [])),
+                "target_id": f'history-{s["key"]}-{i}',
+                "name": s["name"], "target_label": target_label, "cat_color": cat_color,
+            })
+
+    if not entries:
+        return '''
+      <div class="timeline-empty">
+        아직 감지된 개정 이력이 없습니다. 매주 월요일 자동 수집 시 조문·별표 변경이
+        감지되면 이곳에 최신순으로 쌓입니다.
+      </div>'''
+
+    entries.sort(key=lambda e: e["detected_at"], reverse=True)
+    groups = []
+    cur_date, cur_list = None, None
+    for e in entries:
+        d = e["detected_at"][:10]
+        if d != cur_date:
+            cur_date, cur_list = d, []
+            groups.append((cur_date, cur_list))
+        cur_list.append(e)
+
+    group_html = []
+    for date, items in groups:
+        rows = "".join(f'''
+          <button class="timeline-entry" data-target="{esc(it["target_id"])}">
+            <span class="statute-cat-dot" style="background:{it["cat_color"]}"></span>
+            <span class="statute-target-badge">{esc(it["target_label"])}</span>
+            <span class="timeline-statute-name">{esc(it["name"])}</span>
+            <span class="timeline-summary">조문 {it["article_count"]}건 · 별표 {it["annex_count"]}건 변경 · 시행일 {fmt_date(it["effective_date"])}</span>
+          </button>''' for it in items)
+        group_html.append(f'''
+      <div class="timeline-date-group">
+        <div class="timeline-date">{date} 감지</div>
+        <div class="timeline-date-items">{rows}</div>
+      </div>''')
+    return f'<div class="timeline">{"".join(group_html)}</div>'
 
 
 def render_articles(statute: dict) -> str:
@@ -208,6 +262,9 @@ def build():
 
     items_html = "".join(render_statute(s) for s in statutes)
     changed_count = sum(1 for s in statutes if s.get("history"))
+    total_history_entries = sum(len(s.get("history", [])) for s in statutes)
+    timeline_html = render_timeline(statutes)
+    timeline_btn_suffix = f' · {total_history_entries}건' if total_history_entries else ""
     generated = library.get("generated_at", datetime.now(timezone.utc).isoformat())
 
     html_out = f"""<!DOCTYPE html>
@@ -308,7 +365,23 @@ def build():
     .article-item.search-hit summary{{font-weight:700;color:var(--primary-text);}}
 
     .main{{max-width:820px;margin:16px auto;padding:0 24px 60px;}}
-    #normalView[hidden], #searchResults[hidden]{{display:none;}}
+    #normalView[hidden], #searchResults[hidden], #timelineView[hidden]{{display:none;}}
+
+    .timeline-date-group{{margin-bottom:20px;}}
+    .timeline-date{{font-family:'JetBrains Mono',monospace;font-size:0.76rem;font-weight:700;
+      color:var(--muted);padding-bottom:6px;margin-bottom:8px;border-bottom:1px solid var(--hairline);}}
+    .timeline-date-items{{display:flex;flex-direction:column;gap:6px;}}
+    .timeline-entry{{display:flex;align-items:center;gap:8px;flex-wrap:wrap;width:100%;text-align:left;
+      background:var(--surface);border:1px solid var(--hairline);border-radius:8px;padding:9px 12px;
+      cursor:pointer;font-family:inherit;color:var(--body-text);}}
+    .timeline-entry:hover{{border-color:var(--primary);}}
+    .timeline-statute-name{{font-size:0.85rem;font-weight:700;}}
+    .timeline-summary{{font-size:0.76rem;color:var(--muted-strong);margin-left:auto;}}
+    .timeline-empty{{padding:40px 20px;text-align:center;color:var(--muted);font-size:0.85rem;
+      background:var(--surface);border-radius:12px;line-height:1.7;}}
+    @media(max-width:760px){{
+      .timeline-summary{{margin-left:0;width:100%;}}
+    }}
 
     .statute-item{{background:var(--surface);border-radius:12px;padding:16px 18px;margin-bottom:14px;}}
     .statute-header{{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}}
@@ -379,6 +452,7 @@ def build():
         <input class="search-input" type="text" placeholder="법령명·조문 내용 검색" oninput="setSearch(this.value)">
       </div>
       <button class="btn-tool" id="aiToggleBtn" onclick="toggleAiMode()">🧠 AI 의미검색</button>
+      <button class="btn-tool" id="timelineToggleBtn" onclick="toggleTimelineView()">🕒 변경이력 타임라인{timeline_btn_suffix}</button>
     </div>
     <div class="ai-status" id="aiStatus" hidden></div>
     <div class="ai-results" id="aiResults" hidden></div>
@@ -394,6 +468,7 @@ def build():
       </main>
     </div>
     <div class="main" id="searchResults" hidden></div>
+    <div class="main" id="timelineView" hidden>{timeline_html}</div>
   </div>
 </div>
 <script>
@@ -613,6 +688,43 @@ def build():
         jumpToChunk(btn.dataset.key, btn.dataset.kind, btn.dataset.no);
       }});
     }});
+  }}
+
+  // ── 변경 이력 타임라인 ──
+  // 개별 법령 카드 안 접힌 개정 이력(history-entry)을 그대로 재사용한다 — 타임라인은
+  // 요약만 보여주고, 클릭하면 정상 목록으로 돌아가 해당 카드의 이력을 펼쳐 스크롤한다.
+  var timelineEnabled = false;
+
+  function toggleTimelineView() {{
+    timelineEnabled = !timelineEnabled;
+    document.getElementById('timelineToggleBtn').classList.toggle('active', timelineEnabled);
+    document.getElementById('timelineView').hidden = !timelineEnabled;
+    if (timelineEnabled) {{
+      document.getElementById('normalView').hidden = true;
+      document.getElementById('searchResults').hidden = true;
+      document.getElementById('searchStatus').hidden = true;
+    }} else {{
+      applyFilter();
+    }}
+  }}
+
+  document.getElementById('timelineView').addEventListener('click', function(e) {{
+    var btn = e.target.closest('.timeline-entry');
+    if (!btn) return;
+    jumpToHistory(btn.dataset.target);
+  }});
+
+  function jumpToHistory(id) {{
+    timelineEnabled = false;
+    document.getElementById('timelineToggleBtn').classList.remove('active');
+    document.getElementById('timelineView').hidden = true;
+    clearAllFilters();
+    var detail = document.getElementById(id);
+    if (!detail) return;
+    detail.open = true;
+    detail.scrollIntoView({{ behavior: 'smooth', block: 'center' }});
+    detail.classList.add('deep-link-highlight');
+    setTimeout(function() {{ detail.classList.remove('deep-link-highlight'); }}, 2000);
   }}
 
   function jumpToChunk(key, kind, no) {{
