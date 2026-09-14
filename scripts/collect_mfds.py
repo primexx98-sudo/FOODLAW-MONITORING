@@ -25,6 +25,16 @@ from law_type_utils import detect_law_type, is_food_related
 
 BODY_TEXT_MAX_CHARS = 3000
 
+_EMAIL_RE = re.compile(r"[A-Za-z0-9._%+-]+@([A-Za-z0-9.-]+\.[A-Za-z]{2,})")
+
+
+def mask_emails(text: str) -> str:
+    """공고 본문에 그대로 실리는 담당 공무원 개인 이메일(의견 제출처 등)을 마스킹한다.
+    도메인은 남겨 "문의처가 있었다"는 맥락은 유지하되 특정 개인 식별은 막는다."""
+    if not text:
+        return text
+    return _EMAIL_RE.sub(r"***@\1", text)
+
 
 def fetch_detail_body(url: str) -> str:
     """상세페이지의 실제 공고 본문("개정이유 및 주요내용", 의견제출 마감 등)을 추출한다.
@@ -47,7 +57,7 @@ def fetch_detail_body(url: str) -> str:
         paragraphs = [p.get_text(" ", strip=True) for p in cont.find_all("p")]
         paragraphs = [re.sub(r"\s{2,}", " ", p) for p in paragraphs if p]
         text = "\n".join(paragraphs) if paragraphs else cont.get_text(" ", strip=True)
-        return text[:BODY_TEXT_MAX_CHARS]
+        return mask_emails(text[:BODY_TEXT_MAX_CHARS])
     except Exception as e:
         print(f"    상세본문 수집 실패 [{url}]: {e}")
         return ""
