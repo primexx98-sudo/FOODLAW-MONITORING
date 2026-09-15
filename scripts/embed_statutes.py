@@ -140,13 +140,14 @@ def embed():
 
     chunk_meta = build_chunk_list(library)
 
+    # 2026-09-15: 실무자료(practice)는 공개 검색 인덱스에서 제외했다 — 대응하는 카드가
+    # 없어 검색 결과가 "출처: 실무자료"라는 텍스트만 뜨고 내용 확인이 불가능한 상태였다
+    # (사용자 피드백으로 AI 의미검색을 통째로 껐다가, 이 부분만 빼고 재활성화).
+    # 실무자료 62건은 전체 청크의 절반 이상(4654/8849)을 차지해 제외 시 embeddings.json도
+    # 절반 가까이 줄어든다. 실무자료 원문 확인은 로컬 전용
+    # `Desktop\업무\건강기능식품 통합 대시보드\식품법령모니터\실무자료_MD참고\`로 대체.
+    # build_practice_chunk_list()는 재활성화 대비 그대로 남겨둠(호출만 안 함).
     practice_names = {}
-    if os.path.exists(PRACTICE_DATA_PATH):
-        with open(PRACTICE_DATA_PATH, encoding="utf-8") as f:
-            practice_docs = json.load(f).get("docs", [])
-        practice_chunks, practice_names = build_practice_chunk_list(practice_docs)
-        chunk_meta.extend(practice_chunks)
-        print(f"[임베딩] 실무자료 {len(practice_docs)}건 → {len(practice_chunks)}개 청크 추가")
 
     if not chunk_meta:
         print("[임베딩] 임베딩할 청크가 없습니다.")

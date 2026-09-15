@@ -27,6 +27,20 @@ STATUTES = [
      "category": "원산지", "api_target": "law", "query": "농수산물의 원산지 표시 등에 관한 법률 시행령"},
     {"key": "origin_rule", "name": "농수산물의 원산지 표시 등에 관한 법률 시행규칙",
      "category": "원산지", "api_target": "law", "query": "농수산물의 원산지 표시 등에 관한 법률 시행규칙"},
+    # 2026-09-15 추가: 건강기능식품 모법이 그동안 빠져있었음(하위 고시 2종만 추적 중이었음).
+    {"key": "hff_law", "name": "건강기능식품에 관한 법률",
+     "category": "건기식", "api_target": "law", "query": "건강기능식품에 관한 법률"},
+    {"key": "hff_decree", "name": "건강기능식품에 관한 법률 시행령",
+     "category": "건기식", "api_target": "law", "query": "건강기능식품에 관한 법률 시행령"},
+    {"key": "hff_rule", "name": "건강기능식품에 관한 법률 시행규칙",
+     "category": "건기식", "api_target": "law", "query": "건강기능식품에 관한 법률 시행규칙"},
+    # 2026-09-15 추가: 원료·수입 관련 확대.
+    {"key": "import_food_law", "name": "수입식품안전관리 특별법",
+     "category": "수입", "api_target": "law", "query": "수입식품안전관리 특별법"},
+    {"key": "import_food_decree", "name": "수입식품안전관리 특별법 시행령",
+     "category": "수입", "api_target": "law", "query": "수입식품안전관리 특별법 시행령"},
+    {"key": "import_food_rule", "name": "수입식품안전관리 특별법 시행규칙",
+     "category": "수입", "api_target": "law", "query": "수입식품안전관리 특별법 시행규칙"},
 
     # --- 행정규칙/고시 (target=admrul, 조문 텍스트 diff 가능) ---
     {"key": "hff_label_standard", "name": "건강기능식품의 표시기준",
@@ -51,6 +65,11 @@ STATUTES = [
      "category": "포장재", "api_target": "admrul", "query": "포장재 재활용 용이성 등급평가 기준"},
     {"key": "origin_label_manner", "name": "농수산물의 원산지표시 요령",
      "category": "원산지", "api_target": "admrul", "query": "농수산물의 원산지표시 요령"},
+    # 2026-09-15 추가.
+    {"key": "hff_gmp", "name": "우수건강기능식품 제조기준",
+     "category": "건기식", "api_target": "admrul", "query": "우수건강기능식품 제조기준"},
+    {"key": "temp_standard_spec", "name": "식품등의 한시적 기준 및 규격 인정 기준",
+     "category": "원료", "api_target": "admrul", "query": "식품등의 한시적 기준 및 규격 인정 기준"},
 
     # --- 행정규칙/고시 (target=admrul, "공전"류 — 조문 원문 대신 안내문만 반환) ---
     # 세 공전(건강기능식품/식품/식품첨가물의 기준 및 규격) 모두 API가 조문 본문을 안 줌 —

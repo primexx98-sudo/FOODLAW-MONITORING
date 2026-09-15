@@ -17,10 +17,11 @@ OUT_PATH = os.path.join(os.path.dirname(__file__), "..", "docs", "statute", "ind
 
 TARGET_LABELS = {"law": "법령", "admrul": "고시"}
 
-CATEGORY_ORDER = ["표시광고", "건기식", "포장재", "원산지", "기준규격", "이력추적"]
+CATEGORY_ORDER = ["표시광고", "건기식", "포장재", "원산지", "기준규격", "이력추적", "수입", "원료"]
 CATEGORY_COLORS = {
     "표시광고": "#5046e5", "건기식": "#0a9f68", "포장재": "#2563eb",
     "원산지": "#d97706", "기준규격": "#9333ea", "이력추적": "#d63447",
+    "수입": "#0891b2", "원료": "#65a30d",
 }
 
 
@@ -208,10 +209,13 @@ def render_articles(statute: dict) -> str:
             f'<div class="statute-reason"><div class="statute-reason-label">최근 제·개정 이유</div>'
             f'<div class="statute-reason-text">{esc(reason)}</div></div>'
         ) if reason else ""
-        # full_text는 (AI 의미검색이 꺼져있는 동안엔) 카드에 안 넣는다 — 건강기능식품/식품첨가물
-        # 공전 전문이 각각 수십만~2백만자라 그대로 넣으면 카드 하나가 페이지 전체 용량을 배 이상
-        # 불려버림([[project_food_law_monitor]] 09-11 참고). AI 의미검색은 2026-09-15 임시 비활성화
-        # (실무자료 출처 표시만 있고 원문 확인 불가라는 피드백) — 재활성화 시 ai_hint도 복원할 것.
+        # full_text는 검색 색인(AI 의미검색, embed_statutes.py)에만 쓰고 카드엔 안 넣는다 —
+        # 건강기능식품/식품첨가물 공전 전문이 각각 수십만~2백만자라 그대로 넣으면 카드 하나가
+        # 페이지 전체 용량을 배 이상 불려버림([[project_food_law_monitor]] 09-11 참고).
+        ai_hint = (
+            '<div class="statute-attachments">🧠 AI 의미검색에는 이 고시의 전문(품목별 규격 포함)이 '
+            '색인돼 있습니다 — 조문 목록은 없어도 관련 내용은 검색으로 찾을 수 있어요.</div>'
+        ) if cur.get("full_text") else ""
         return f'''
           <div class="statute-no-text">
             이 항목은 방대한 "공전"류 고시라 국가법령정보 Open API가 조문 단위 본문을 제공하지
@@ -219,6 +223,7 @@ def render_articles(statute: dict) -> str:
             <a href="{esc(cur["detail_url"])}" target="_blank" rel="noopener">국가법령정보센터에서 원문 보기 →</a>
             {reason_html}
             {render_attachments(cur.get("attachments", []))}
+            {ai_hint}
           </div>'''
     articles = cur.get("articles", [])
     items = []
@@ -502,6 +507,7 @@ def build():
         <span class="search-icon">🔍</span>
         <input class="search-input" type="text" placeholder="법령명·조문 내용 검색" oninput="setSearch(this.value)">
       </div>
+      <button class="btn-tool" id="aiToggleBtn" onclick="toggleAiMode()">🧠 AI 의미검색</button>
       <button class="btn-tool" id="timelineToggleBtn" onclick="toggleTimelineView()">🕒 변경이력 타임라인{timeline_btn_suffix}</button>
     </div>
     <div class="ai-status" id="aiStatus" hidden></div>
