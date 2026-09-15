@@ -66,8 +66,11 @@ STATUTES = [
     {"key": "origin_label_manner", "name": "농수산물의 원산지표시 요령",
      "category": "원산지", "api_target": "admrul", "query": "농수산물의 원산지표시 요령"},
     # 2026-09-15 추가.
-    {"key": "hff_gmp", "name": "우수건강기능식품 제조기준",
-     "category": "건기식", "api_target": "admrul", "query": "우수건강기능식품 제조기준"},
+    # 2026-09-15: 검색해보면 이름이 "우수건강기능식품 제조기준"이 아니라 아래처럼
+    # "운영에 관한 규정"까지 붙어야 국가법령정보센터 등록명과 정확히 일치함(최초 등록 시
+    # 이름 불일치로 스킵됐던 걸 실제 API 응답 확인 후 수정).
+    {"key": "hff_gmp", "name": "우수건강기능식품 제조기준 운영에 관한 규정",
+     "category": "건기식", "api_target": "admrul", "query": "우수건강기능식품 제조기준 운영에 관한 규정"},
     {"key": "temp_standard_spec", "name": "식품등의 한시적 기준 및 규격 인정 기준",
      "category": "원료", "api_target": "admrul", "query": "식품등의 한시적 기준 및 규격 인정 기준"},
 
